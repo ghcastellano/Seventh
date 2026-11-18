@@ -700,6 +700,10 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-3 3"/></svg>
           Mercado, SWOT &amp; Custos
         </button>
+        <button class="nav-item" data-view="blueprint" role="tab" aria-selected="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>
+          Plano &amp; Business Case
+        </button>
       </div>
     </div>
   </nav>
@@ -1315,6 +1319,288 @@
             </ul>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: EXECUTION PLAN, REA VERDICT, ARCHITECTURE, ROADMAP, RISKS, OPEX & BUSINESS CASE -->
+    <section id="view-blueprint" class="view-section">
+      <div class="hero">
+        <span class="eyebrow">Plano de Execução • Stack Próprio Antifurto &amp; Seventh</span>
+        <h1>Roadmap, Arquitetura, Custos e Business Case</h1>
+        <p class="lead">
+          Guia prático para construir o stack próprio (<strong>Frigate / YOLOv8-Pose + PoseLift + VLM</strong>) integrado ao <strong>D-Guard</strong> e <strong>Situator</strong> — incluindo análise honesta sobre o uso do <strong>REA (morluto/rea)</strong> no Veesion.
+        </p>
+      </div>
+
+      <!-- 1. Verdict on REA + Veesion -->
+      <div class="sec-head">
+        <h2>1. Vale a pena usar o REA (morluto/rea) no Veesion?</h2>
+        <span>Análise técnica, jurídica e estratégica (Clean-Room vs. Engenharia Reversa)</span>
+      </div>
+      <div class="deep-dive" style="margin-bottom:1.5rem; border-color: rgba(251, 191, 36, 0.35);">
+        <div class="deep-grid">
+          <div class="deep-card">
+            <h4 style="color:var(--amber);">Veredito: Não vale a pena</h4>
+            <p>O <strong>REA (Reverse Engineer Anything)</strong> é um servidor MCP + CLI que conecta agentes de IA a ferramentas como Ghidra, JADX e inspetores JS/binários para fazer engenharia reversa sem código-fonte. Aplicá-lo sobre um concorrente comercial como a <strong>Veesion</strong> não compensa.</p>
+          </div>
+          <div class="deep-card">
+            <h4 style="color:#f87171;">Por que não usar no Veesion?</h4>
+            <ul>
+              <li>• <strong>Risco jurídico (PI/ToS):</strong> violação de termos de uso e propriedade intelectual se usado para copiar código ou modelos proprietários.</li>
+              <li>• <strong>Inutilidade prática na IA:</strong> o diferencial da Veesion não está no HTML/JS público, mas nos pesos neurais fechados e no dataset real de milhares de lojas.</li>
+            </ul>
+          </div>
+          <div class="deep-card">
+            <h4 style="color:var(--emerald);">O que fazer no lugar (Clean-Room)</h4>
+            <ul>
+              <li>• Use a arquitetura pública já conhecida (RTSP + pose sem rosto + clipe de 5s) com stack aberto legítimo: <strong>Frigate + YOLOv8-Pose + PoseLift + VLM</strong>.</li>
+              <li>• Reserve ferramentas como o REA apenas para <strong>interoperabilidade</strong> com protocolos/DVRs legados sem documentação do seu próprio cliente.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Suggested Architecture -->
+      <div class="sec-head">
+        <h2>2. Arquitetura Sugerida (Edge + Nuvem Leve)</h2>
+        <span>Processamento pesado na loja (barato) e confirmação inteligente na nuvem</span>
+      </div>
+      <div class="deep-dive" style="margin-bottom:1.5rem;">
+        <div class="deep-grid">
+          <div class="deep-card">
+            <h4>Camada 1: Ingestão (D-Guard)</h4>
+            <p>Câmeras existentes do mercado conectadas ao D-Guard local. O D-Guard expõe os streams via <strong>Servidor RTSP (porta 554)</strong> na rede interna (sub-stream 720p a 10–15 FPS para não sobrecarregar).</p>
+          </div>
+          <div class="deep-card">
+            <h4>Camada 2: Edge Box na Loja</h4>
+            <p>Mini-PC com GPU/NPU (ex.: RTX 3060 / Jetson Orin) rodando <strong>Go2rtc / Frigate + YOLOv8-Pose + ByteTrack</strong>. Extrai apenas esqueletos (17 keypoints) e pontua gestos suspeitos com modelo temporal (<strong>ST-GCN/LSTM</strong> treinado no <strong>PoseLift</strong>).</p>
+          </div>
+          <div class="deep-card">
+            <h4>Camada 3: Juiz VLM &amp; Situator</h4>
+            <p>Apenas quando o score passa de <strong>70%</strong>, recorta um clipe de 5s e envia para um <strong>VLM em nuvem</strong> confirmar a intenção de ocultação. Se confirmado, dispara <strong>Webhook / API HTTP/JSON</strong> direto para a fila do <strong>Situator</strong> e app da loja.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. How to Start -->
+      <div class="sec-head">
+        <h2>3. Como Começar (Semana 1 — Passo a Passo)</h2>
+        <span>Checklist prático para sair do zero até o primeiro alerta real</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Passo</th>
+              <th>Ação Prática</th>
+              <th>Ferramenta / Recurso</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1. Ambiente D-Guard</strong></td>
+              <td>Subir servidor D-Guard de teste, habilitar porta RTSP 554 e testar leitura do stream com VLC/FFmpeg.</td>
+              <td>D-Guard (Configurações &gt; Transmissão &gt; RTSP)</td>
+            </tr>
+            <tr>
+              <td><strong>2. Base Open-Source</strong></td>
+              <td>Clonar stack base (Go2rtc/Frigate + YOLOv8-Pose) em container Docker com GPU local ou Colab/RunPod.</td>
+              <td><code>blakeblackshear/frigate</code>, <code>ultralytics</code>, <code>PoseLift</code></td>
+            </tr>
+            <tr>
+              <td><strong>3. Loja-Piloto</strong></td>
+              <td>Fechar 1 mercado parceiro (8–12 câmeras em corredores críticos) em troca de isenção nos 2 primeiros meses.</td>
+              <td>Contrato de piloto + aviso LGPD (sem biometria facial)</td>
+            </tr>
+            <tr>
+              <td><strong>4. Coleta &amp; Calibração</strong></td>
+              <td>Gravar 2 semanas de falsos positivos normais vs. simulações de ocultação para ajustar limiar do ST-GCN e prompt do VLM.</td>
+              <td>Labeling leve + ajuste de zonas de gôndola</td>
+            </tr>
+            <tr>
+              <td><strong>5. Ponte Situator</strong></td>
+              <td>Criar perfil <code>Cliente da API</code> ou Webhook no Situator para receber o clipe de 5s e acionar operador/fiscal de loja.</td>
+              <td>Situator (API HTTP/JSON ou Webhooks)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 4. 8-Week Roadmap -->
+      <div class="sec-head">
+        <h2>4. Roadmap de Implementação (8 Semanas para MVP)</h2>
+        <span>Entregas quinzenais com validação em loja real</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fase</th>
+              <th>Foco Principal</th>
+              <th>Entregável</th>
+              <th>Critério de Sucesso</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Semanas 1–2</strong></td>
+              <td>Ingestão &amp; Rastreio</td>
+              <td>Conector RTSP 554 (D-Guard) + Go2rtc + YOLOv8-Pose + ByteTrack estável em 8 câmeras.</td>
+              <td>&lt; 5% perda de frames e uso estável de GPU.</td>
+            </tr>
+            <tr>
+              <td><strong>Semanas 3–4</strong></td>
+              <td>Inteligência &amp; VLM</td>
+              <td>Classificador de pose (PoseLift/ST-GCN) + Juiz VLM assíncrono + Webhook para Situator.</td>
+              <td>Latência de alerta &lt; 4s após o gesto suspeito.</td>
+            </tr>
+            <tr>
+              <td><strong>Semanas 5–6</strong></td>
+              <td>Piloto &amp; Calibração</td>
+              <td>Instalação na loja-piloto; 14 dias ajustando falsos positivos (bolso/celular/casaco) e ângulos.</td>
+              <td>Taxa de falsos positivos &lt; 2 alertas/dia/loja.</td>
+            </tr>
+            <tr>
+              <td><strong>Semanas 7–8</strong></td>
+              <td>Produto &amp; Go-to-Market</td>
+              <td>App/Painel de clipes de 5s para fiscal de loja + empacotamento comercial + 1º contrato pago.</td>
+              <td>Pronto para replicar em 5+ lojas com setup em 1 dia.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 5. Risks & Mitigations -->
+      <div class="sec-head">
+        <h2>5. Riscos Principais e Mitigações</h2>
+        <span>O que pode dar errado e como blindar o projeto</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Risco</th>
+              <th>Impacto</th>
+              <th>Mitigação Prática</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Falsos positivos em excesso</strong> (fiscal cansa de olhar alertas)</td>
+              <td><span class="pill-high">Alto</span></td>
+              <td>Arquitetura em 2 estágios (Pose local + Juiz VLM na nuvem) + 2 semanas de calibração por corredor.</td>
+            </tr>
+            <tr>
+              <td><strong>Passivo jurídico / Abordagem indevida</strong></td>
+              <td><span class="pill-high">Alto</span></td>
+              <td>Proibir reconhecimento facial (LGPD) e treinar a loja no protocolo de <em>"atendimento preventivo"</em> ("Posso ajudar?"), nunca acusação direta.</td>
+            </tr>
+            <tr>
+              <td><strong>Oclusão e ângulo ruim de câmeras antigas</strong></td>
+              <td><span class="pill-med">Médio</span></td>
+              <td>Exigir posicionamento mínimo nos corredores de alto valor (bebidas, carnes, cosméticos) antes de ativar a assinatura.</td>
+            </tr>
+            <tr>
+              <td><strong>Internet de upload instável na loja</strong></td>
+              <td><span class="pill-med">Médio</span></td>
+              <td>Rodar YOLO/Pose 100% local no Edge Box; subir para a nuvem apenas clipes de 5s (~1–2 MB) quando houver suspeita.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 6. CAPEX, OPEX & Business Case -->
+      <div class="sec-head">
+        <h2>6. Custos (CAPEX / OPEX) e Business Case</h2>
+        <span>Simulação financeira conservadora por loja (média de 10 câmeras monitoradas)</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Item de Custo</th>
+              <th>Tipo</th>
+              <th>Valor Estimado (R$)</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Desenvolvimento do MVP (8 semanas)</strong></td>
+              <td>CAPEX (único)</td>
+              <td>R$ 25.000 – R$ 45.000</td>
+              <td>1 Dev Python/CV + 1 Full-Stack (ou custo de oportunidade próprio).</td>
+            </tr>
+            <tr>
+              <td><strong>Edge Box por Loja (Mini-PC c/ GPU ou Jetson)</strong></td>
+              <td>CAPEX / Comodato</td>
+              <td>R$ 3.500 – R$ 5.500 / loja</td>
+              <td>Pago na taxa de adesão/setup ou diluído em contrato de 12 meses.</td>
+            </tr>
+            <tr>
+              <td><strong>Juiz VLM na Nuvem (só em alertas suspeitos)</strong></td>
+              <td>OPEX mensal / loja</td>
+              <td>R$ 25 – R$ 60 / mês</td>
+              <td>~30–80 clipes/dia filtrados pelo Pose local; custo marginal baixíssimo.</td>
+            </tr>
+            <tr>
+              <td><strong>Storage de Clipes + Servidor API/Webhook</strong></td>
+              <td>OPEX mensal / loja</td>
+              <td>R$ 30 – R$ 50 / mês</td>
+              <td>Armazenamento S3/R2 (30 dias de clipes de 5s) + backend compartilhado.</td>
+            </tr>
+            <tr>
+              <td><strong>Suporte &amp; Manutenção (rateio)</strong></td>
+              <td>OPEX mensal / loja</td>
+              <td>R$ 40 – R$ 60 / mês</td>
+              <td>Monitoramento de saúde do Edge Box e atualização de modelo.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Cenário de Escala</th>
+              <th>Receita Mensal (MRR)<br/>(R$ 69/câm • 10 câm/loja = R$ 690)</th>
+              <th>OPEX Mensal Total<br/>(~R$ 140/loja)</th>
+              <th>Lucro Bruto Mensal</th>
+              <th>Margem &amp; Payback</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1 Loja (Piloto Pago)</strong></td>
+              <td>R$ 690 / mês</td>
+              <td>R$ 140 / mês</td>
+              <td><strong>R$ 550 / mês</strong></td>
+              <td>Margem <strong>80%</strong> • ROI imediato para o mercado (que perde R$ 5k–20k/mês).</td>
+            </tr>
+            <tr>
+              <td><strong>10 Lojas</strong></td>
+              <td>R$ 6.900 / mês</td>
+              <td>R$ 1.400 / mês</td>
+              <td><strong>R$ 5.500 / mês</strong></td>
+              <td>Margem <strong>80%</strong> • Payback do MVP em ~6–8 meses.</td>
+            </tr>
+            <tr>
+              <td><strong>30 Lojas</strong></td>
+              <td>R$ 20.700 / mês</td>
+              <td>R$ 4.200 / mês</td>
+              <td><strong>R$ 16.500 / mês</strong></td>
+              <td>Margem <strong>80%</strong> • R$ 198 mil/ano de lucro bruto.</td>
+            </tr>
+            <tr>
+              <td><strong>100 Lojas (Escala Regional)</strong></td>
+              <td>R$ 69.000 / mês</td>
+              <td>R$ 14.000 / mês</td>
+              <td><strong>R$ 55.000 / mês</strong></td>
+              <td>Margem <strong>80%</strong> • ARR de R$ 828 mil com forte efeito de rede no dataset próprio.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
