@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seventh AI — Oportunidades de Produtos com IA (D-Guard & Situator)</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #111827;
+      --surface-2: #1e293b;
+      --border: #263248;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #818cf8;
+      --green: #34d399;
+      --amber: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: radial-gradient(circle at top right, #172554 0%, var(--bg) 45%);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem 4rem;
+    }
+    .container { max-width: 1120px; margin: 0 auto; }
+    header {
+      border: 1px solid var(--border);
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      margin-bottom: 0.9rem;
+    }
+    h1 { font-size: clamp(1.75rem, 3vw, 2.5rem); line-height: 1.2; margin-bottom: 0.75rem; }
+    .subtitle { color: var(--muted); max-width: 780px; font-size: 1.05rem; }
+    .stack-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .stack-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+    }
+    .stack-box h3 { font-size: 0.95rem; color: var(--accent); margin-bottom: 0.4rem; }
+    .stack-box p { font-size: 0.88rem; color: var(--muted); }
+    .section-title {
+      font-size: 1.35rem;
+      margin: 2rem 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .card-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+    .tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(129, 140, 248, 0.15);
+      color: var(--accent-2);
+      border: 1px solid rgba(129, 140, 248, 0.3);
+    }
+    .impact {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(52, 211, 153, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+    .card h2 { font-size: 1.12rem; line-height: 1.35; }
+    .card p { font-size: 0.92rem; color: var(--muted); }
+    .integration {
+      margin-top: auto;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.82rem;
+      color: #cbd5e1;
+    }
+    .integration strong { color: var(--amber); }
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">Seventh Ecossistema • D-Guard + Situator</span>
+      <h1>Oportunidades de Produtos com IA</h1>
+      <p class="subtitle">
+        Mapeamento técnico de produtos e SaaS de Inteligência Artificial conectados às APIs, streams e fluxos operacionais do <strong>D-Guard (v7.1.4.9)</strong> e <strong>Situator (v5)</strong>.
+      </p>
+      <div class="stack-bar">
+        <div class="stack-box">
+          <h3>D-Guard (VMS) — Pontos de Conexão</h3>
+          <p>Servidor RTSP (554), API REST (8081), DASH, ações HTTP GET, snapshots FTP, LPR (DGPLPR), Analytics Nível 1/2 e módulo Intelligence.</p>
+        </div>
+        <div class="stack-box">
+          <h3>Situator (PSIM) — Pontos de Conexão</h3>
+          <p>API de Eventos HTTP/JSON, Webhooks, VoIP/CTI (uTech), Matriz Virtual, Imagem de Comparação, Situator Visitas, Chave Virtual e Scond.</p>
+        </div>
+      </div>
+    </header>
+
+    <h2 class="section-title">7 Oportunidades de Produtos Conectados</h2>
+    <div class="grid">
+      <article class="card">
+        <div class="card-top">
+          <span class="tag">Visão Computacional</span>
+          <span class="impact">Alto ROI Imediato</span>
+        </div>
+        <h2>1. Filtro Inteligente de Falsos Positivos</h2>
+        <p>Valida alertas de movimento e analíticos do D-Guard (que sofrem com luz/clima) usando VLMs antes de abrir ocorrência no Situator, reduzindo drasticamente o ruído na central.</p>
+        <div class="integration"><strong>Conexão:</strong> D-Guard (FTP / HTTP GET / RTSP 554) → Motor IA → Situator (API HTTP/JSON).</div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <span class="tag">LLM / Copiloto</span>
+          <span class="impact">Produtividade</span>
+        </div>
+        <h2>2. Copiloto de Operação & Resolução no Situator</h2>
+        <p>Sugere respostas de encerramento (além das 16 prontas), detecta divergência automática contra a "Imagem de comparação" da zona e gera resumos de turno e SLA.</p>
+        <div class="integration"><strong>Conexão:</strong> Situator Webhooks + Histórico de Ocorrências + D-Guard REST (8081).</div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <span class="tag">Agente de Voz + Chat</span>
+          <span class="impact">Portaria Autônoma</span>
+        </div>
+        <h2>3. Porteiro Virtual Autônomo (VoIP & WhatsApp)</h2>
+        <p>Atende interfones via SIP/CTI, valida visitante por foto/documento/placa, confirma com o morador e libera acesso ou emite Chave Virtual / QR Code automaticamente.</p>
+        <div class="integration"><strong>Conexão:</strong> Central VoIP/CTI (uTech) + Situator Visitas / API de Eventos.</div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <span class="tag">Edge / Cloud AI</span>
+          <span class="impact">Novos Verticais</span>
+        </div>
+        <h2>4. Analíticos Avançados em Nuvem via RTSP</h2>
+        <p>Supera o limite 640x480/800x600 do analítico nativo consumindo o RTSP do D-Guard para detectar EPIs, quedas, incêndio visual, filas e furtos no varejo/indústria.</p>
+        <div class="integration"><strong>Conexão:</strong> D-Guard Servidor RTSP (porta 554) → Inferência IA → Webhook Situator.</div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <span class="tag">AIOps / Preditivo</span>
+          <span class="impact">Redução de Churn</span>
+        </div>
+        <h2>5. Monitoramento Preditivo de Saúde de CFTV</h2>
+        <p>Analisa logs de Auditoria, quedas de conexão, espaço em disco e alertas de "Taxa de gravação insuficiente" para prever falhas de HD e câmeras antes do cliente reclamar.</p>
+        <div class="integration"><strong>Conexão:</strong> Logs/Auditoria D-Guard + Eventos de Perda de Sinal no Situator.</div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <span class="tag">LPR + Visão</span>
+          <span class="impact">Logística & Condomínios</span>
+        </div>
+        <h2>6. Inteligência Veicular & Antifraude de Placas</h2>
+        <p>Enriquece o módulo LPR identificando marca, modelo, cor e tipo de veículo para detectar placas clonadas comparando com o cadastro de veículos do Situator.</p>
+        <div class="integration"><strong>Conexão:</strong> D-Guard LPR + Cadastro de Veículos / Condutores do Situator.</div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <span class="tag">Segurança & Dados</span>
+          <span class="impact">Compliance</span>
+        </div>
+        <h2>7. Auditoria Comportamental de Acessos</h2>
+        <p>Detecta anomalias em logs de acesso: uso atípico de botoeira ("Desconhecido"), acesso fora de padrão, anti-passback analítico e tentativas repetidas de acesso negado.</p>
+        <div class="integration"><strong>Conexão:</strong> Relatórios de Acesso & Pessoas do Situator → Motor de Anomalias.</div>
+      </article>
+    </div>
+
+    <footer>
+      Projeto criado a partir da análise dos manuais oficiais Seventh D-Guard e Situator.
+    </footer>
+  </div>
+</body>
+</html>
