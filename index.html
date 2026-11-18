@@ -1602,6 +1602,131 @@
           </tbody>
         </table>
       </div>
+
+      <!-- 7. Pre-trained Models (HF, GitHub, China) & 3-Step Calibration -->
+      <div class="sec-head">
+        <h2>7. Modelos Prontos (GitHub / Hugging Face / China) &amp; Treino</h2>
+        <span>Não é preciso treinar do zero — comece com pesos abertos e calibre na loja</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Recurso / Modelo</th>
+              <th>Origem</th>
+              <th>O que já entrega pronto</th>
+              <th>Papel no nosso Stack</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Shoplift_detection / FinalShopliftingdetector</strong></td>
+              <td>Hugging Face</td>
+              <td>Pesos pré-treinados em <strong>UCF-Crime</strong> e <strong>DCSASS</strong> (TimeSformer, R(2+1)D, ST-GCN).</td>
+              <td>Baseline rápido para testar detecção de ocultação logo na Semana 1.</td>
+            </tr>
+            <tr>
+              <td><strong>vahapogut/Theft-Detection</strong> &amp; <strong>PoseLift</strong></td>
+              <td>GitHub / WACV</td>
+              <td>Pipeline YOLOv8-Pose + tracking + dataset de esqueleto (17 pontos, sem rosto).</td>
+              <td>Detector local rápido e compatível com LGPD (ignora identidade facial).</td>
+            </tr>
+            <tr>
+              <td><strong>Qwen2.5-VL</strong> &amp; <strong>InternVL</strong></td>
+              <td>China (Alibaba / Shanghai AI Lab)</td>
+              <td>VLMs multimodais de vídeo que entendem cenas em <em>zero-shot</em> com timestamps.</td>
+              <td><strong>"Juiz" inteligente:</strong> valida clipes de 5s suspeitos e derruba falsos positivos.</td>
+            </tr>
+            <tr>
+              <td><strong>MMAction2</strong> &amp; <strong>PaddleVideo</strong></td>
+              <td>China (OpenMMLab / Baidu)</td>
+              <td>Toolboxes PyTorch/Paddle industriais (SlowFast, VideoMAE, ST-GCN leve).</td>
+              <td>Fine-tuning leve e inferência otimizada para produção/edge.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="deep-dive" style="margin-bottom:1.5rem;">
+        <div class="deep-grid">
+          <div class="deep-card">
+            <h4>Etapa 1: Arranque Zero Treino (Dias 1–5)</h4>
+            <p>YOLOv8-Pose lê o RTSP 554 → ST-GCN/PoseLift pontua gestos → Qwen2.5-VL (ou VLM em nuvem) confirma se houve ocultação no clipe de 5s antes de enviar Webhook ao Situator.</p>
+          </div>
+          <div class="deep-card">
+            <h4>Etapa 2: Shadow Mode na Loja (14 dias)</h4>
+            <p>Roda em silêncio sem incomodar o fiscal, gravando clipes suspeitos + 15 simulações reais feitas por funcionários nos corredores críticos.</p>
+          </div>
+          <div class="deep-card">
+            <h4>Etapa 3: Calibração &amp; Fine-Tuning Leve</h4>
+            <p>Ajuste de limiar por corredor (bebidas/carnes vs. limpeza) e fine-tuning rápido apenas no classificador de coordenadas de esqueleto (treina em minutos).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. POC This Week Without Physical Hardware -->
+      <div class="sec-head">
+        <h2>8. Como Fazer uma POC Real Já Nesta Semana (Sem Hardware)</h2>
+        <span>Aproveitando o acesso do seu sócio a mercados enquanto você domina D-Guard e Situator</span>
+      </div>
+      <div class="deep-dive" style="margin-bottom:1.5rem; border-color: rgba(52, 211, 153, 0.35);">
+        <div class="deep-grid">
+          <div class="deep-card">
+            <h4>1. D-Guard + Câmeras Virtuais Hoje</h4>
+            <ul>
+              <li>• O <strong>D-Guard Standard (DGPSTAN) é gratuito</strong> e tem modo demonstração para testar recursos.</li>
+              <li>• Sem DVR físico: use <strong>FFmpeg / MediaMTX / Go2rtc</strong> no seu PC para transformar vídeos MP4 (do mercado do sócio ou datasets UCF-Crime/DCSASS) em streams <strong>RTSP</strong> reais e conecte no D-Guard.</li>
+            </ul>
+          </div>
+          <div class="deep-card">
+            <h4>2. Conexão ao Mercado do Sócio</h4>
+            <ul>
+              <li>• <strong>Caminho mais rápido (Dia 1):</strong> peça ao seu sócio 15–20 vídeos curtos (20s) exportados do D-Guard de um mercado parceiro (metade compras normais, metade simulações de furto).</li>
+              <li>• <strong>Ao vivo sem ir ao local:</strong> se o mercado já usa D-Guard, conecte via <strong>Transmissão Inversa</strong> ou <strong>Redirecionador Seventh</strong> (sem abrir portas no roteador).</li>
+            </ul>
+          </div>
+          <div class="deep-card">
+            <h4>3. Custo Real da POC Esta Semana</h4>
+            <ul>
+              <li>• <strong>R$ 0</strong> de hardware (não compre Mini-PC ainda).</li>
+              <li>• <strong>R$ 50 – R$ 150</strong> em GPU alugada por hora (RunPod / Vast.ai a ~US$ 0,25–0,40/h) para rodar YOLOv8-Pose + testes.</li>
+              <li>• <strong>R$ 30 – R$ 100</strong> em créditos de API de VLM (Qwen2.5-VL / OpenRouter) para testar centenas de clipes.</li>
+              <li>• <strong>Total da POC: R$ 80 a R$ 250</strong> em 5–7 dias.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. Success Rate, Risks & Strategic Question -->
+      <div class="sec-head">
+        <h2>9. Chance de Sucesso, Riscos e a Pergunta que Você Não Fez</h2>
+        <span>Avaliação honesta para quem implementa + sócio que vende para mercados</span>
+      </div>
+      <div class="deep-dive" style="margin-bottom:1.5rem;">
+        <div class="deep-grid">
+          <div class="deep-card">
+            <h4>Chance de Sucesso &amp; Prazos</h4>
+            <ul>
+              <li>• <strong>POC Técnica (vídeos/simulações): 85%+</strong> em <strong>5–10 dias</strong> usando modelos prontos + VLM.</li>
+              <li>• <strong>Piloto em Loja Real + 1ª Venda: 65%–75%</strong> em <strong>6–8 semanas</strong>, porque o desafio deixa de ser código e passa a ser ângulo de câmera e falso positivo em horário de pico.</li>
+              <li>• Ter um sócio com acesso direto a donos de mercado elimina o maior gargalo de qualquer startup B2B (distribuição).</li>
+            </ul>
+          </div>
+          <div class="deep-card">
+            <h4 style="color:#f87171;">Pontos Críticos a Considerar</h4>
+            <ul>
+              <li>• <strong>Não prometa "100% dos furtos pegos":</strong> prometa <em>"redução de 50%+ das perdas com &lt; 2 alertas falsos/dia"</em>.</li>
+              <li>• <strong>Hardware só depois da POC:</strong> só compre Mini-PC/Edge Box (R$ 3,5k–5,5k) quando a loja assinar o piloto pago ou contrato.</li>
+              <li>• <strong>Treinamento D-Guard/Situator:</strong> foque primeiro em <em>Servidores, Streams/RTSP, Eventos (HTTP GET), API HTTP/JSON e Webhooks</em>.</li>
+            </ul>
+          </div>
+          <div class="deep-card" style="border-color: rgba(129, 140, 248, 0.45);">
+            <h4 style="color:var(--indigo);">A Pergunta que Você Não Fez (e a Resposta)</h4>
+            <p><strong>Pergunta:</strong> <em>"Quando a IA apitar na loja, quem recebe o alerta, como aborda o cliente sem gerar processo trabalhista/moral, e qual a meta exata para o dono assinar no dia 15?"</em></p>
+            <p style="margin-top:0.45rem;"><strong>Resposta:</strong> Defina antes da POC um <strong>SLA de Piloto</strong> (ex.: detectar ≥ 70% das simulações + &lt; 2 falsos/dia). Entregue o clipe de 5s no celular do fiscal/gerente (ou Situator) com protocolo de <strong>Abordagem de Atendimento</strong> (<em>"Posso ajudar com uma sacola?"</em>) — isso recupera o produto sem constrangimento e faz o dono pagar R$ 690+/mês já no 1º mês.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <footer>
