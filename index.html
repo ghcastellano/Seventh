@@ -422,6 +422,80 @@
     }
     .story-biz strong { color: var(--emerald); }
 
+    /* Mode Switcher & Gap-to-Solution Grid */
+    .mode-switch {
+      display: inline-flex;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.2rem;
+      gap: 0.25rem;
+    }
+    .mode-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.38rem 0.75rem;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .mode-btn.active[data-mode="raw"] {
+      background: rgba(251, 191, 36, 0.16);
+      color: var(--amber);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+    }
+    .mode-btn.active[data-mode="ai"] {
+      background: var(--emerald-soft);
+      color: var(--emerald);
+      border: 1px solid rgba(52, 211, 153, 0.35);
+    }
+    .pipe-node.is-bottleneck {
+      border-color: rgba(251, 191, 36, 0.5);
+      background: rgba(251, 191, 36, 0.06);
+    }
+    .pulse-dot.amber { background: var(--amber); }
+    .conn-label.amber { color: var(--amber); }
+    .gap-grid {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 0.9rem;
+    }
+    .gap-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .gap-card h4 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+    }
+    .gap-card.is-gap h4 { color: var(--amber); }
+    .gap-card.is-sol h4 { color: var(--emerald); }
+    .gap-card p { font-size: 0.84rem; color: #cbd5e1; line-height: 1.45; }
+    .sol-links { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.25rem; }
+    .sol-chip {
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 0.24rem 0.6rem;
+      border-radius: 6px;
+      background: var(--emerald-soft);
+      color: var(--emerald);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+    .sol-chip:hover { opacity: 0.85; }
+
     /* Opportunities Grid (Tab 2) */
     .opp-grid {
       display: grid;
@@ -632,8 +706,8 @@
 
       <!-- Interactive Animated Simulator -->
       <div class="sec-head">
-        <h2>Simulador Animado por Contexto de Negócio</h2>
-        <span>Selecione um cenário para ver o fluxo de dados e onde está o valor</span>
+        <h2>Simulador Animado: Hoje (Sem IA) vs. Com Nossa IA</h2>
+        <span>Compare a operação nativa conjunta, os gaps e como nossas soluções se conectam</span>
       </div>
       <div class="sim-box">
         <div class="sim-controls">
@@ -643,10 +717,16 @@
             <button class="sim-tab" data-idx="2">Indústria &amp; Pátio</button>
             <button class="sim-tab" data-idx="3">Central 24h (AIOps)</button>
           </div>
-          <button class="btn-replay" id="sim-replay">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Simular Fluxo
-          </button>
+          <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+            <div class="mode-switch" id="mode-switch">
+              <button class="mode-btn active" data-mode="raw">Hoje (Sem IA)</button>
+              <button class="mode-btn" data-mode="ai">Com Nossa IA</button>
+            </div>
+            <button class="btn-replay" id="sim-replay">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Simular Fluxo
+            </button>
+          </div>
         </div>
 
         <div class="pipeline">
@@ -660,20 +740,20 @@
 
           <div class="connector">
             <span class="conn-label" id="pc1-label"></span>
-            <div class="track"><div class="pulse-dot"></div></div>
+            <div class="track"><div class="pulse-dot" id="pdot-1"></div></div>
           </div>
 
           <div class="pipe-node" id="pnode-1">
-            <div class="pipe-node-head">
+            <div class="pipe-node-head" id="pn1-head">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
-              Sua IA (Cérebro)
+              <span id="pn1-title">Sua IA (Cérebro)</span>
             </div>
             <p id="pn1-text"></p>
           </div>
 
           <div class="connector">
             <span class="conn-label green" id="pc2-label"></span>
-            <div class="track"><div class="pulse-dot green"></div></div>
+            <div class="track"><div class="pulse-dot green" id="pdot-2"></div></div>
           </div>
 
           <div class="pipe-node" id="pnode-2">
@@ -692,8 +772,24 @@
           </div>
           <p class="story-desc" id="st-desc"></p>
           <div class="story-biz">
-            <strong>Valor de Negócio:</strong>
+            <strong id="st-biz-label">Valor de Negócio:</strong>
             <span id="st-biz"></span>
+          </div>
+        </div>
+
+        <div class="gap-grid">
+          <div class="gap-card">
+            <h4>Como Operam Juntos Hoje (Cru)</h4>
+            <p id="gap-raw"></p>
+          </div>
+          <div class="gap-card is-gap">
+            <h4>Gaps Principais Identificados</h4>
+            <p id="gap-pain"></p>
+          </div>
+          <div class="gap-card is-sol">
+            <h4>Soluções Conectadas ao Gap</h4>
+            <p id="gap-sol"></p>
+            <div class="sol-links" id="sol-links"></div>
           </div>
         </div>
       </div>
@@ -803,67 +899,204 @@
       });
     });
 
-    // Interactive Simulator Data
+    // Interactive Simulator Data (Hoje sem IA vs Com Nossa IA + Gaps & Soluções)
     const simData = [
       {
-        title: "Portaria Autônoma & Filtro de Alarmes Falsos",
         badge: "Condomínios",
-        n0: "Câmera vê carro e LPR lê a placa; chuva dispara movimento.",
-        c1: "RTSP 554 / FTP",
-        n1: "Ignora chuva e valida placa + rosto do visitante.",
-        c2: "HTTP/JSON",
-        n2: "Aciona relé do portão ou envia QR Code / Chave Virtual.",
-        desc: "Se uma árvore balança à noite, sua IA descarta o falso alarme antes de sujar a tela do operador. Se um visitante chega no portão, a IA confere placa e documento, fala com o morador e pede ao Situator para abrir.",
-        biz: "Reduz em até 80% os alarmes falsos na central e viabiliza portaria 24h com menos operadores."
+        rawFlow: {
+          n0: "Detecção de movimento/LPR e Matriz Virtual enviam alerta bruto.",
+          c1: "REST 8081 / CTI",
+          n1Title: "Gargalo Humano (Sem IA)",
+          n1: "Operador atende interfone, olha câmera vs Imagem de comparação e decide.",
+          c2: "Ação Manual",
+          n2: "Abre portão manualmente e escolhe 1 de 16 Resoluções prontas.",
+          title: "Operação Nativa Hoje: Portaria Remota & Alarmes",
+          desc: "Hoje, D-Guard dispara movimento (chuva, farol, sombra) e o Situator joga na fila Aberto por criticidade. No interfone (uTech), o operador confere foto, fala com morador e clica em Ações para abrir o portão.",
+          bizLabel: "Limitação Hoje:",
+          biz: "Fila entupida com falsos positivos climáticos e custo alto de operadores humanos por turno."
+        },
+        aiFlow: {
+          n0: "Câmera vê carro e LPR lê a placa; chuva dispara movimento.",
+          c1: "RTSP 554 / FTP",
+          n1Title: "Sua IA (Cérebro)",
+          n1: "Ignora chuva e valida placa + rosto do visitante.",
+          c2: "HTTP/JSON",
+          n2: "Aciona relé do portão ou envia QR Code / Chave Virtual.",
+          title: "Com Nossa IA: Portaria Autônoma & Filtro de Alarmes Falsos",
+          desc: "Se uma árvore balança à noite, sua IA descarta o falso alarme antes de sujar a tela do operador. Se um visitante chega no portão, a IA confere placa e documento, fala com o morador e pede ao Situator para abrir.",
+          bizLabel: "Valor de Negócio:",
+          biz: "Reduz em até 80% os alarmes falsos na central e viabiliza portaria 24h com menos operadores."
+        },
+        rawSummary: "D-Guard grava e troca layout via Matriz Virtual; Situator recebe evento, abre pop-up de instruções, integra interfone uTech e libera Chave Virtual/QR Code.",
+        gaps: "Manual do D-Guard admite falsos alarmes com variação de luz/movimento; LPR não checa se o modelo visual bate com a placa; fechamento limitado a 16 respostas prontas.",
+        solText: "Conectamos visão computacional no RTSP/FTP, agente de voz no VoIP e copiloto na fila do Situator.",
+        solChips: ["1. Filtro Falsos Positivos", "2. Copiloto Situator", "3. Porteiro Autônomo", "6. Antifraude LPR"]
       },
       {
-        title: "Prevenção a Perdas & Gestão de Filas",
         badge: "Varejo / Lojas",
-        n0: "Câmeras dos corredores e caixas capturam vídeo contínuo.",
-        c1: "RTSP 554",
-        n1: "Detecta fila longa ou comportamento suspeito.",
-        c2: "Webhook",
-        n2: "Abre ocorrência 'Alta' para o gerente com clipe pronto.",
-        desc: "Sem trocar nenhuma câmera da loja, sua IA lê o stream RTSP do D-Guard. Quando a fila do caixa passa de 5 pessoas ou ocorre suspeita de furto, um Webhook alerta o Situator na hora.",
-        biz: "Permite vender um SaaS mensal por câmera para redes de farmácias, mercados e franquias."
+        rawFlow: {
+          n0: "Gravação contínua e cerca virtual básica (640x480–800x600).",
+          c1: "Evento Básico",
+          n1Title: "Gargalo Humano (Sem IA)",
+          n1: "Supervisor precisa assistir mosaicos de até 100 câmeras ao vivo.",
+          c2: "Busca Manual",
+          n2: "Pesquisa gravação na timeline após o prejuízo já ter ocorrido.",
+          title: "Operação Nativa Hoje: CFTV Passivo & Auditoria Tardia",
+          desc: "Sem IA externa, D-Guard e Situator funcionam bem para gravar e abrir portas, mas não entendem comportamento de compra, filas longas no caixa ou furtos sutis em corredores.",
+          bizLabel: "Limitação Hoje:",
+          biz: "Câmeras caras subutilizadas apenas como 'caixa-preta' pós-incidente."
+        },
+        aiFlow: {
+          n0: "Câmeras dos corredores e caixas capturam vídeo contínuo.",
+          c1: "RTSP 554",
+          n1Title: "Sua IA (Cérebro)",
+          n1: "Detecta fila longa ou comportamento suspeito.",
+          c2: "Webhook",
+          n2: "Abre ocorrência 'Alta' para o gerente com clipe pronto.",
+          title: "Com Nossa IA: Prevenção a Perdas & Gestão de Filas",
+          desc: "Sem trocar nenhuma câmera da loja, sua IA lê o stream RTSP do D-Guard. Quando a fila do caixa passa de 5 pessoas ou ocorre suspeita de furto, um Webhook alerta o Situator na hora.",
+          bizLabel: "Valor de Negócio:",
+          biz: "Permite vender um SaaS mensal por câmera para redes de farmácias, mercados e franquias."
+        },
+        rawSummary: "D-Guard centraliza múltiplos DVRs das filiais via D-Guard Center; Situator gera ocorrências de abertura/fechamento de loja e controle de acesso ao estoque.",
+        gaps: "Analítico nativo limitado a 640x480/800x600 (12–20 FPS) e apenas regras simples (cerca, contagem básica, perambulação); zero leitura semântica de furto ou fila.",
+        solText: "Consumimos o Servidor RTSP (porta 554) do D-Guard em nuvem/edge e injetamos alertas via Webhook no Situator.",
+        solChips: ["4. Analíticos via RTSP", "1. Filtro Falsos Positivos", "7. Auditoria de Acessos"]
       },
       {
-        title: "Segurança do Trabalho (EPI) & Logística de Pátio",
         badge: "Indústria / Galpões",
-        n0: "Câmera na doca + LPR na portaria de caminhões.",
-        c1: "HTTP GET + RTSP",
-        n1: "Verifica capacete/colete e placa agendada.",
-        c2: "API Eventos",
-        n2: "Registra ocorrência, toca alerta sonoro ou libera doca.",
-        desc: "Na indústria, o D-Guard entrega o vídeo da doca e a leitura de placa. A IA identifica trabalhador sem capacete próximo a empilhadeira ou valida a chegada do caminhão no horário.",
-        biz: "Previne acidentes de trabalho, reduz multas e acelera o giro de carga e descarga."
+        rawFlow: {
+          n0: "LPR lê placa + D-Guard Intelligence liga relés por horário/sensor.",
+          c1: "REST 8081 / I/O",
+          n1Title: "Gargalo Humano (Sem IA)",
+          n1: "Segurança do trabalho depende de ronda visual manual nas câmeras.",
+          c2: "Registro Manual",
+          n2: "Situator registra acesso por crachá/biometria e ocorrências de portaria.",
+          title: "Operação Nativa Hoje: Regras Rígidas & Controle Físico",
+          desc: "D-Guard Intelligence executa regras fixas (se sensor ON após 18h → liga luz e vira PTZ) e o Situator controla zonas restritas por crachá/biometria. Mas nenhum dos dois enxerga EPIs ou risco operacional.",
+          bizLabel: "Limitação Hoje:",
+          biz: "Sem detecção automática de capacete/colete ou cruzamento visual de carga e veículo."
+        },
+        aiFlow: {
+          n0: "Câmera na doca + LPR na portaria de caminhões.",
+          c1: "HTTP GET + RTSP",
+          n1Title: "Sua IA (Cérebro)",
+          n1: "Verifica capacete/colete e placa agendada.",
+          c2: "API Eventos",
+          n2: "Registra ocorrência, toca alerta sonoro ou libera doca.",
+          title: "Com Nossa IA: Segurança do Trabalho (EPI) & Logística de Pátio",
+          desc: "Na indústria, o D-Guard entrega o vídeo da doca e a leitura de placa. A IA identifica trabalhador sem capacete próximo a empilhadeira ou valida a chegada do caminhão no horário.",
+          bizLabel: "Valor de Negócio:",
+          biz: "Previne acidentes de trabalho, reduz multas e acelera o giro de carga e descarga."
+        },
+        rawSummary: "D-Guard automatiza I/O e LPR com listas branca/negra; Situator gerencia zonas restritas, horários globais, feriados e condutores vinculados.",
+        gaps: "Falta de visão computacional para EPIs/empilhadeiras; abertura por botoeira aparece apenas como 'Desconhecido' nos logs do Situator sem auditoria inteligente.",
+        solText: "Unimos RTSP 554 + HTTP GET para EPIs/logística e análise comportamental nos relatórios de acesso.",
+        solChips: ["4. Analíticos via RTSP", "6. Inteligência Veicular LPR", "7. Auditoria de Acessos"]
       },
       {
-        title: "Monitoramento Preditivo de Saúde de CFTV (AIOps)",
         badge: "Central 24h",
-        n0: "Auditoria mede CPU, disco e 'Taxa de gravação insuficiente'.",
-        c1: "Logs / REST 8081",
-        n1: "Prevê falha de HD e quedas recorrentes.",
-        c2: "API / Ticket",
-        n2: "Copiloto gera resumo de turno e abre chamado técnico.",
-        desc: "Antes de o cliente descobrir que ficou dias sem gravação, a IA cruza os logs do D-Guard com eventos de perda de sinal no Situator e dispara manutenção preventiva automática.",
-        biz: "Reduz cancelamento de contratos (churn) por ausência de gravação em incidentes reais."
+        rawFlow: {
+          n0: "Painel Auditoria exibe CPU, disco e alerta 'Taxa de gravação insuficiente'.",
+          c1: "Perda de Sinal",
+          n1Title: "Gargalo Reativo (Sem IA)",
+          n1: "Operador só percebe câmera/HD morto quando o evento aparece ou cliente liga.",
+          c2: "Relatório Manual",
+          n2: "Supervisor exporta relatórios separados para tentar entender falhas.",
+          title: "Operação Nativa Hoje: Manutenção Reativa & Passagem Manual",
+          desc: "D-Guard mostra a saúde no painel Auditoria e o Situator recebe eventos de 'Perda de sinal/conexão'. Porém, sem correlação preditiva, quedas intermitentes passam batido até o HD parar.",
+          bizLabel: "Limitação Hoje:",
+          biz: "Cliente descobre que estava sem gravação justamente quando ocorre um sinistro."
+        },
+        aiFlow: {
+          n0: "Auditoria mede CPU, disco e 'Taxa de gravação insuficiente'.",
+          c1: "Logs / REST 8081",
+          n1Title: "Sua IA (Cérebro)",
+          n1: "Prevê falha de HD e quedas recorrentes.",
+          c2: "API / Ticket",
+          n2: "Copiloto gera resumo de turno e abre chamado técnico.",
+          title: "Com Nossa IA: Monitoramento Preditivo de Saúde (AIOps)",
+          desc: "Antes de o cliente descobrir que ficou dias sem gravação, a IA cruza os logs do D-Guard com eventos de perda de sinal no Situator e dispara manutenção preventiva automática.",
+          bizLabel: "Valor de Negócio:",
+          biz: "Reduz cancelamento de contratos (churn) por ausência de gravação em incidentes reais."
+        },
+        rawSummary: "D-Guard fornece BI de infraestrutura (banda, FPS, disco); Situator audita SLA de atendimento, tempo de fechamento e ações por operador.",
+        gaps: "Diagnóstico 100% reativo; logs criptografados/isolados por servidor; passagem de turno e análise de câmera virada ('Imagem de comparação') são manuais.",
+        solText: "Motor AIOps prevê falhas de disco/rede e Copiloto automatiza resumos de turno e checagem visual.",
+        solChips: ["5. AIOps Preditivo CFTV", "2. Copiloto Situator"]
       }
     ];
 
+    let currentIdx = 0;
+    let currentMode = 'raw';
     let animTimer = null;
-    function loadScenario(idx) {
-      const s = simData[idx];
-      document.querySelectorAll('.sim-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
-      document.getElementById('pn0-text').textContent = s.n0;
-      document.getElementById('pc1-label').textContent = s.c1;
-      document.getElementById('pn1-text').textContent = s.n1;
-      document.getElementById('pc2-label').textContent = s.c2;
-      document.getElementById('pn2-text').textContent = s.n2;
-      document.getElementById('st-title').textContent = s.title;
+
+    function switchToOpportunities() {
+      document.querySelectorAll('.nav-item').forEach(b => {
+        const active = b.dataset.view === 'opportunities';
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-selected', active);
+      });
+      document.querySelectorAll('.view-section').forEach(sec => {
+        sec.classList.toggle('active', sec.id === 'view-opportunities');
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderSimulator() {
+      const s = simData[currentIdx];
+      const flow = currentMode === 'raw' ? s.rawFlow : s.aiFlow;
+
+      document.querySelectorAll('.sim-tab').forEach((t, i) => t.classList.toggle('active', i === currentIdx));
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === currentMode));
+
+      document.getElementById('pn0-text').textContent = flow.n0;
+      document.getElementById('pc1-label').textContent = flow.c1;
+      document.getElementById('pn1-title').textContent = flow.n1Title;
+      document.getElementById('pn1-text').textContent = flow.n1;
+      document.getElementById('pc2-label').textContent = flow.c2;
+      document.getElementById('pn2-text').textContent = flow.n2;
+
+      const midNode = document.getElementById('pnode-1');
+      const c1 = document.getElementById('pc1-label');
+      const d1 = document.getElementById('pdot-1');
+      const c2 = document.getElementById('pc2-label');
+      const d2 = document.getElementById('pdot-2');
+
+      if (currentMode === 'raw') {
+        midNode.classList.add('is-bottleneck');
+        c1.className = 'conn-label amber';
+        d1.className = 'pulse-dot amber';
+        c2.className = 'conn-label amber';
+        d2.className = 'pulse-dot amber';
+      } else {
+        midNode.classList.remove('is-bottleneck');
+        c1.className = 'conn-label';
+        d1.className = 'pulse-dot';
+        c2.className = 'conn-label green';
+        d2.className = 'pulse-dot green';
+      }
+
+      document.getElementById('st-title').textContent = flow.title;
       document.getElementById('st-badge').textContent = s.badge;
-      document.getElementById('st-desc').textContent = s.desc;
-      document.getElementById('st-biz').textContent = s.biz;
+      document.getElementById('st-desc').textContent = flow.desc;
+      document.getElementById('st-biz-label').textContent = flow.bizLabel;
+      document.getElementById('st-biz').textContent = flow.biz;
+
+      document.getElementById('gap-raw').textContent = s.rawSummary;
+      document.getElementById('gap-pain').textContent = s.gaps;
+      document.getElementById('gap-sol').textContent = s.solText;
+
+      const linksEl = document.getElementById('sol-links');
+      linksEl.innerHTML = '';
+      s.solChips.forEach(label => {
+        const btn = document.createElement('button');
+        btn.className = 'sol-chip';
+        btn.textContent = label + ' →';
+        btn.addEventListener('click', switchToOpportunities);
+        linksEl.appendChild(btn);
+      });
+
       runFlowAnimation();
     }
 
@@ -882,11 +1115,21 @@
 
     document.getElementById('sim-tabs').addEventListener('click', (e) => {
       const btn = e.target.closest('.sim-tab');
-      if (btn) loadScenario(Number(btn.dataset.idx));
+      if (btn) {
+        currentIdx = Number(btn.dataset.idx);
+        renderSimulator();
+      }
+    });
+    document.getElementById('mode-switch').addEventListener('click', (e) => {
+      const btn = e.target.closest('.mode-btn');
+      if (btn) {
+        currentMode = btn.dataset.mode;
+        renderSimulator();
+      }
     });
     document.getElementById('sim-replay').addEventListener('click', runFlowAnimation);
 
-    loadScenario(0);
+    renderSimulator();
   </script>
 </body>
 </html>
