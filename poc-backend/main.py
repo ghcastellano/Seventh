@@ -99,9 +99,17 @@ def _blur_face_lgpd(frame: np.ndarray, kpts: Any) -> None:
     frame[y1:y2, x1:x2] = (blurred * mask + roi * (1.0 - mask)).astype(np.uint8)
 
 
+def _draw_floor_ellipse(frame: np.ndarray, x1: int, y1: int, x2: int, y2: int, color: tuple[int, int, int]) -> None:
+    """EllipseAnnotator: anel 3D discreto no plano do piso (ideal para corredores com muitas pessoas)."""
+    cx = (x1 + x2) // 2
+    rx = max(10, (x2 - x1) // 2)
+    ry = max(4, rx // 4)
+    cv2.ellipse(frame, (cx, min(frame.shape[0] - 3, y2)), (rx, ry), 0, -35, 215, color, 1, cv2.LINE_AA)
+
+
 def _draw_corner_box(frame: np.ndarray, x1: int, y1: int, x2: int, y2: int, color: tuple[int, int, int]) -> None:
     """BoxCornerAnnotator: cantoneiras finas e elegantes (L-corners) + EllipseAnnotator 3D no piso."""
-    clen = max(9, min(16, (x2 - x1) // 5, (y2 - y1) // 5))
+    clen = max(8, min(16, (x2 - x1) // 5, (y2 - y1) // 5))
     t = 1
     cv2.line(frame, (x1, y1), (x1 + clen, y1), color, t, cv2.LINE_AA)
     cv2.line(frame, (x1, y1), (x1, y1 + clen), color, t, cv2.LINE_AA)
@@ -111,11 +119,11 @@ def _draw_corner_box(frame: np.ndarray, x1: int, y1: int, x2: int, y2: int, colo
     cv2.line(frame, (x1, y2), (x1, y2 - clen), color, t, cv2.LINE_AA)
     cv2.line(frame, (x2, y2), (x2 - clen, y2), color, t, cv2.LINE_AA)
     cv2.line(frame, (x2, y2), (x2, y2 - clen), color, t, cv2.LINE_AA)
-    # EllipseAnnotator (anel de base 3D no plano do piso, estilo Roboflow Supervision / Verkada)
-    cx = (x1 + x2) // 2
-    rx = max(10, (x2 - x1) // 2)
-    ry = max(4, rx // 4)
-    cv2.ellipse(frame, (cx, min(frame.shape[0] - 3, y2)), (rx, ry), 0, -35, 215, color, 1, cv2.LINE_AA)
+    _draw_floor_ellipse(frame, x1, y1, x2, y2, color)
+
+
+def _rects_overlap(a: tuple[int, int, int, int], b: tuple[int, int, int, int], pad: int = 3) -> bool:
+    return not (a[2] + pad <= b[0] or a[0] >= b[2] + pad or a[3] + pad <= b[1] or a[1] >= b[3] + pad)
 
 
 def _draw_pill_label(
@@ -126,32 +134,51 @@ def _draw_pill_label(
     accent: tuple[int, int, int],
     scale: float = 0.37,
     placed_rects: list[tuple[int, int, int, int]] | None = None,
-) -> None:
-    """LabelAnnotator com resolvedor 2D anti-colisão: etiquetas nunca se sobrepõem."""
+    is_priority: bool = True,
+) -> bool:
+    """LabelAnnotator com resolvedor 2D multidirecional anti-colisão e supressão em multidões."""
     fh, fw = frame.shape[:2]
     font = cv2.FONT_HERSHEY_DUPLEX
     (tw, th), _ = cv2.getTextSize(text, font, scale, 1)
     px, py = 6, 4
     bw, bh = tw + px * 2, th + py * 2
-    bx1 = max(6, min(fw - bw - 6, x))
-    by1 = max(6, min(fh - bh - 6, y))
+    base_x = max(6, min(fw - bw - 6, x))
+    base_y = max(6, min(fh - bh - 6, y))
+    bx1, by1 = base_x, base_y
+
     if placed_rects is not None:
-        for _ in range(5):
-            conflict = False
-            for ox1, oy1, ox2, oy2 in placed_rects:
-                if not (bx1 + bw + 3 <= ox1 or bx1 >= ox2 + 3 or by1 + bh + 2 <= oy1 or by1 >= oy2 + 2):
-                    by1 = min(fh - bh - 6, oy2 + 3)
-                    conflict = True
-                    break
-            if not conflict:
+        candidates = [
+            (base_x, base_y),
+            (base_x, min(fh - bh - 6, base_y + bh + 6)),
+            (base_x, max(6, base_y - bh - 6)),
+            (min(fw - bw - 6, base_x + bw // 2 + 8), base_y),
+            (max(6, base_x - bw // 2 - 8), base_y),
+            (base_x, min(fh - bh - 6, base_y + (bh + 5) * 2)),
+            (base_x, max(6, base_y - (bh + 5) * 2)),
+        ]
+        found_slot = False
+        for cx, cy in candidates:
+            cand_rect = (cx, cy, cx + bw, cy + bh)
+            if not any(_rects_overlap(cand_rect, r) for r in placed_rects):
+                bx1, by1 = cx, cy
+                found_slot = True
                 break
+        if not found_slot:
+            if not is_priority:
+                return False
+            # Para alerta prioritário, empilha abaixo do último retângulo conflitante dentro da tela
+            for r in placed_rects:
+                if _rects_overlap((bx1, by1, bx1 + bw, by1 + bh), r):
+                    by1 = min(fh - bh - 6, r[3] + 3)
         placed_rects.append((bx1, by1, bx1 + bw, by1 + bh))
+
     bx2, by2 = bx1 + bw, by1 + bh
     roi = frame[by1:by2, bx1:bx2]
     dark = np.full_like(roi, (24, 15, 10))
     cv2.addWeighted(dark, 0.74, roi, 0.26, 0, dst=roi)
     cv2.line(frame, (bx1, by1), (bx1, by2 - 1), accent, 2)
     cv2.putText(frame, text, (bx1 + px, by2 - py - 1), font, scale, (245, 248, 252), 1, cv2.LINE_AA)
+    return True
 
 
 def _angle_deg(a: Any, b: Any, c: Any) -> float:
@@ -318,6 +345,7 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
     sampled_annotated: list[np.ndarray] = []
     peak_sampled_idx = 0
     track_traces: dict[int, list[tuple[int, int]]] = {}
+    track_last_seen: dict[int, int] = {}
 
     try:
         while cap.isOpened():
@@ -345,11 +373,8 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
                             _blur_face_lgpd(frame, kpts)
             clean_copy = cv2.resize(frame, (480, max(2, int(480 * height / width))))
 
-            # Camada de sobreposição sutil e translúcida (Supervision / Verkada 2026)
-            skel_overlay = frame.copy()
-            placed_rects: list[tuple[int, int, int, int]] = [(6, 6, 178, 28)]
-            person_labels: list[tuple[str, int, int, tuple[int, int, int]]] = []
-
+            # Coleta todos os indivíduos detectados e ordena por prioridade (suspeita + área)
+            detections_list: list[dict[str, Any]] = []
             for res in results:
                 if res.keypoints is None or res.keypoints.xy is None:
                     continue
@@ -360,17 +385,57 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
                 for idx, kpts in enumerate(res.keypoints.xy):
                     if len(kpts) < 13:
                         continue
+                    box_coords = [int(v) for v in boxes[idx]] if (boxes is not None and idx < len(boxes)) else None
+                    if box_coords is not None:
+                        bx_w = box_coords[2] - box_coords[0]
+                        bx_h = box_coords[3] - box_coords[1]
+                        if bx_w < 18 or bx_h < 32:
+                            continue
+                        area = bx_w * bx_h
+                    else:
+                        area = 0
                     person_count += 1
                     confs_i = kpt_confs[idx] if (kpt_confs is not None and idx < len(kpt_confs)) else None
                     p_score, p_reason = _score_person_pose(kpts, confs_i)
                     frame_score = max(frame_score, p_score)
                     if p_score >= best_score:
                         best_pose_reason = p_reason
+                    tid = int(track_ids[idx]) if (track_ids is not None and idx < len(track_ids)) else (idx + 1)
+                    detections_list.append({
+                        "tid": tid,
+                        "kpts": kpts,
+                        "box": box_coords,
+                        "score": p_score,
+                        "is_susp": p_score >= 0.65,
+                        "area": area,
+                    })
 
-                    is_susp = p_score >= 0.65
-                    skel_color = (133, 113, 251) if is_susp else (212, 234, 94)
-                    box_color = (113, 113, 248) if is_susp else (248, 189, 56)
+            # Remove rastros de pessoas que já saíram da cena há mais de 10 quadros analisados
+            for old_tid in [t_k for t_k, last_a in track_last_seen.items() if analyzed - last_a > 10]:
+                track_traces.pop(old_tid, None)
+                track_last_seen.pop(old_tid, None)
 
+            # Ordena: suspeitos primeiro, depois maior proximidade/área (Declutter em multidões)
+            detections_list.sort(key=lambda d: (1 if d["is_susp"] else 0, d["score"], d["area"]), reverse=True)
+            is_crowded = len(detections_list) >= 4
+
+            skel_overlay = frame.copy()
+            placed_rects: list[tuple[int, int, int, int]] = [(6, 6, 178, 28)]
+            person_labels: list[tuple[float, bool, str, int, int, tuple[int, int, int]]] = []
+
+            for rank_idx, det in enumerate(detections_list):
+                kpts = det["kpts"]
+                p_score = det["score"]
+                is_susp = det["is_susp"]
+                tid = det["tid"]
+                box_coords = det["box"]
+                track_last_seen[tid] = analyzed
+
+                skel_color = (133, 113, 251) if is_susp else (212, 234, 94)
+                box_color = (113, 113, 248) if is_susp else (248, 189, 56)
+                show_full_hud = is_susp or (not is_crowded) or (rank_idx < 2)
+
+                if show_full_hud:
                     for a, b in SKELETON_LINKS:
                         if a < len(kpts) and b < len(kpts):
                             xa, ya = int(kpts[a][0]), int(kpts[a][1])
@@ -381,30 +446,34 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
                         jx, jy = int(kpts[j_idx][0]), int(kpts[j_idx][1])
                         if jx > 0 and jy > 0:
                             cv2.circle(skel_overlay, (jx, jy), 2, skel_color, -1, cv2.LINE_AA)
-                            # Wrist Action Halo oco (destaca mão ativa sem cobrir o produto)
                             if is_susp and j_idx in (9, 10):
                                 cv2.circle(skel_overlay, (jx, jy), 9, (113, 113, 248), 1, cv2.LINE_AA)
 
-                    if boxes is not None and idx < len(boxes):
-                        x1, y1, x2, y2 = [int(v) for v in boxes[idx]]
-                        tid = int(track_ids[idx]) if (track_ids is not None and idx < len(track_ids)) else (idx + 1)
-                        # TraceAnnotator: rastro de trajetória no plano do piso
-                        foot_pt = ((x1 + x2) // 2, min(height - 3, y2))
-                        pts = track_traces.setdefault(tid, [])
-                        pts.append(foot_pt)
-                        if len(pts) > 14:
-                            pts.pop(0)
+                if box_coords is not None:
+                    x1, y1, x2, y2 = box_coords
+                    foot_pt = ((x1 + x2) // 2, min(height - 3, y2))
+                    pts = track_traces.setdefault(tid, [])
+                    pts.append(foot_pt)
+                    if len(pts) > (14 if is_susp else 8):
+                        pts.pop(0)
+                    if show_full_hud or is_susp:
                         for p_i in range(1, len(pts)):
                             cv2.line(skel_overlay, pts[p_i - 1], pts[p_i], box_color, 1, cv2.LINE_AA)
 
+                    if show_full_hud:
                         _draw_corner_box(frame, x1, y1, x2, y2, box_color)
                         tag = f"#{tid} | {int(p_score * 100)}%{' Alerta' if is_susp else ''}"
                         label_y = (y1 - 20) if y1 >= 34 else (y1 + 6)
-                        person_labels.append((tag, x1, label_y, box_color))
+                        person_labels.append((p_score, is_susp, tag, x1, label_y, box_color))
+                    else:
+                        # Em cena lotada, figurantes normais ao fundo recebem apenas o anel 3D de piso (sem poluir texto)
+                        _draw_floor_ellipse(frame, x1, y1, x2, y2, box_color)
+                        if rank_idx < 4:
+                            person_labels.append((p_score, False, f"#{tid}", x1, max(30, y1 - 18), box_color))
 
             cv2.addWeighted(skel_overlay, 0.45, frame, 0.55, 0, dst=frame)
-            for tag, lx, ly, lcol in person_labels:
-                _draw_pill_label(frame, tag, lx, ly, lcol, placed_rects=placed_rects)
+            for _, is_susp, tag, lx, ly, lcol in person_labels:
+                _draw_pill_label(frame, tag, lx, ly, lcol, placed_rects=placed_rects, is_priority=is_susp)
 
             if person_count > 0:
                 people_detected_frames += 1
