@@ -100,7 +100,7 @@ def _blur_face_lgpd(frame: np.ndarray, kpts: Any) -> None:
 
 
 def _draw_corner_box(frame: np.ndarray, x1: int, y1: int, x2: int, y2: int, color: tuple[int, int, int]) -> None:
-    """Desenha cantoneiras finas e elegantes (L-corners) em vez de caixa grossa poluída."""
+    """BoxCornerAnnotator: cantoneiras finas e elegantes (L-corners) + EllipseAnnotator 3D no piso."""
     clen = max(9, min(16, (x2 - x1) // 5, (y2 - y1) // 5))
     t = 1
     cv2.line(frame, (x1, y1), (x1 + clen, y1), color, t, cv2.LINE_AA)
@@ -111,6 +111,11 @@ def _draw_corner_box(frame: np.ndarray, x1: int, y1: int, x2: int, y2: int, colo
     cv2.line(frame, (x1, y2), (x1, y2 - clen), color, t, cv2.LINE_AA)
     cv2.line(frame, (x2, y2), (x2 - clen, y2), color, t, cv2.LINE_AA)
     cv2.line(frame, (x2, y2), (x2, y2 - clen), color, t, cv2.LINE_AA)
+    # EllipseAnnotator (anel de base 3D no plano do piso, estilo Roboflow Supervision / Verkada)
+    cx = (x1 + x2) // 2
+    rx = max(10, (x2 - x1) // 2)
+    ry = max(4, rx // 4)
+    cv2.ellipse(frame, (cx, min(frame.shape[0] - 3, y2)), (rx, ry), 0, -35, 215, color, 1, cv2.LINE_AA)
 
 
 def _draw_pill_label(
@@ -120,8 +125,9 @@ def _draw_pill_label(
     y: int,
     accent: tuple[int, int, int],
     scale: float = 0.37,
+    placed_rects: list[tuple[int, int, int, int]] | None = None,
 ) -> None:
-    """Desenha etiqueta escura translúcida e legível, sempre contida dentro do quadro."""
+    """LabelAnnotator com resolvedor 2D anti-colisão: etiquetas nunca se sobrepõem."""
     fh, fw = frame.shape[:2]
     font = cv2.FONT_HERSHEY_DUPLEX
     (tw, th), _ = cv2.getTextSize(text, font, scale, 1)
@@ -129,10 +135,21 @@ def _draw_pill_label(
     bw, bh = tw + px * 2, th + py * 2
     bx1 = max(6, min(fw - bw - 6, x))
     by1 = max(6, min(fh - bh - 6, y))
+    if placed_rects is not None:
+        for _ in range(5):
+            conflict = False
+            for ox1, oy1, ox2, oy2 in placed_rects:
+                if not (bx1 + bw + 3 <= ox1 or bx1 >= ox2 + 3 or by1 + bh + 2 <= oy1 or by1 >= oy2 + 2):
+                    by1 = min(fh - bh - 6, oy2 + 3)
+                    conflict = True
+                    break
+            if not conflict:
+                break
+        placed_rects.append((bx1, by1, bx1 + bw, by1 + bh))
     bx2, by2 = bx1 + bw, by1 + bh
     roi = frame[by1:by2, bx1:bx2]
     dark = np.full_like(roi, (24, 15, 10))
-    cv2.addWeighted(dark, 0.72, roi, 0.28, 0, dst=roi)
+    cv2.addWeighted(dark, 0.74, roi, 0.26, 0, dst=roi)
     cv2.line(frame, (bx1, by1), (bx1, by2 - 1), accent, 2)
     cv2.putText(frame, text, (bx1 + px, by2 - py - 1), font, scale, (245, 248, 252), 1, cv2.LINE_AA)
 
@@ -300,6 +317,7 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
     clean_lgpd_frames: list[np.ndarray] = []
     sampled_annotated: list[np.ndarray] = []
     peak_sampled_idx = 0
+    track_traces: dict[int, list[tuple[int, int]]] = {}
 
     try:
         while cap.isOpened():
@@ -327,8 +345,11 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
                             _blur_face_lgpd(frame, kpts)
             clean_copy = cv2.resize(frame, (480, max(2, int(480 * height / width))))
 
-            # Camada de sobreposição sutil e translúcida ("Visão Humana Elegante")
+            # Camada de sobreposição sutil e translúcida (Supervision / Verkada 2026)
             skel_overlay = frame.copy()
+            placed_rects: list[tuple[int, int, int, int]] = [(6, 6, 178, 28)]
+            person_labels: list[tuple[str, int, int, tuple[int, int, int]]] = []
+
             for res in results:
                 if res.keypoints is None or res.keypoints.xy is None:
                     continue
@@ -360,16 +381,30 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
                         jx, jy = int(kpts[j_idx][0]), int(kpts[j_idx][1])
                         if jx > 0 and jy > 0:
                             cv2.circle(skel_overlay, (jx, jy), 2, skel_color, -1, cv2.LINE_AA)
+                            # Wrist Action Halo oco (destaca mão ativa sem cobrir o produto)
+                            if is_susp and j_idx in (9, 10):
+                                cv2.circle(skel_overlay, (jx, jy), 9, (113, 113, 248), 1, cv2.LINE_AA)
 
                     if boxes is not None and idx < len(boxes):
                         x1, y1, x2, y2 = [int(v) for v in boxes[idx]]
                         tid = int(track_ids[idx]) if (track_ids is not None and idx < len(track_ids)) else (idx + 1)
+                        # TraceAnnotator: rastro de trajetória no plano do piso
+                        foot_pt = ((x1 + x2) // 2, min(height - 3, y2))
+                        pts = track_traces.setdefault(tid, [])
+                        pts.append(foot_pt)
+                        if len(pts) > 14:
+                            pts.pop(0)
+                        for p_i in range(1, len(pts)):
+                            cv2.line(skel_overlay, pts[p_i - 1], pts[p_i], box_color, 1, cv2.LINE_AA)
+
                         _draw_corner_box(frame, x1, y1, x2, y2, box_color)
                         tag = f"#{tid} | {int(p_score * 100)}%{' Alerta' if is_susp else ''}"
                         label_y = (y1 - 20) if y1 >= 34 else (y1 + 6)
-                        _draw_pill_label(frame, tag, x1, label_y, box_color)
+                        person_labels.append((tag, x1, label_y, box_color))
 
             cv2.addWeighted(skel_overlay, 0.45, frame, 0.55, 0, dst=frame)
+            for tag, lx, ly, lcol in person_labels:
+                _draw_pill_label(frame, tag, lx, ly, lcol, placed_rects=placed_rects)
 
             if person_count > 0:
                 people_detected_frames += 1
