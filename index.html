@@ -2277,6 +2277,13 @@
       frame();
     }
 
+    function clearCanvasOverlay() {
+      if (poseAnimId) cancelAnimationFrame(poseAnimId);
+      poseAnimId = null;
+      const canvas = document.getElementById('poc-canvas');
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    }
+
     function renderPocResult(res) {
       const card = document.getElementById('poc-alert-card');
       card.className = res.cardClass;
@@ -2287,7 +2294,20 @@
       document.getElementById('poc-reason').textContent = res.reason;
       document.getElementById('poc-action').textContent = res.action;
       document.getElementById('poc-json').textContent = JSON.stringify(res.payload, null, 2);
-      drawSkeletonOverlay(res.alertTriggered);
+
+      if (res.isRealBackend) {
+        clearCanvasOverlay();
+        if (res.recordingUrl) {
+          const video = document.getElementById('poc-video');
+          video.src = res.recordingUrl + '?t=' + Date.now();
+          video.style.display = 'block';
+          video.loop = true;
+          document.getElementById('poc-placeholder').style.display = 'none';
+          video.play().catch(() => {});
+        }
+      } else {
+        drawSkeletonOverlay(res.alertTriggered);
+      }
     }
 
     document.getElementById('poc-presets').addEventListener('click', (e) => {
@@ -2325,14 +2345,18 @@
           const resp = await fetch(apiUrl, { method: 'POST', body: fd });
           const data = await resp.json();
           const score = data.pose_analysis?.pose_score ?? 0.75;
-          const isAlert = score >= 0.70;
+          const isAlert = score >= 0.65;
+          const baseApi = apiUrl.replace(/\/analyze\/?$/, '');
+          const recFile = data.pose_analysis?.recording_filename;
           renderPocResult({
+            isRealBackend: true,
+            recordingUrl: recFile ? (baseApi + '/recordings/' + recFile) : null,
             score,
             verdict: isAlert ? 'ALERTA REAL (Backend GPU)' : 'BAIXO RISCO (Backend GPU)',
             cardClass: isAlert ? 'situator-alert-card is-high' : 'situator-alert-card is-filtered',
             badgeClass: isAlert ? 'pill-high' : 'pill-low',
             reason: data.vlm_judge?.reason || 'Análise concluída pelo backend.',
-            action: data.situator_webhook_sent ? 'Webhook disparado para o Situator!' : 'Payload pronto (configure SITUATOR_WEBHOOK_URL para envio real).',
+            action: data.situator_webhook_sent ? 'Webhook disparado para o Situator!' : 'Payload pronto (descartado ou sem webhook configurado).',
             alertTriggered: isAlert,
             payload: data.situator_payload || data
           });
