@@ -1871,7 +1871,7 @@
         <span class="eyebrow">Demonstração Interativa • YOLOv8-Pose + Juiz VLM + Situator</span>
         <h1>Painel Demo da POC — Antifurto em Mercados</h1>
         <p class="lead">
-          Suba um clipe MP4 de teste (ou escolha um cenário simulado) para visualizar o rastreamento de esqueleto, a validação do Juiz VLM e o payload exato enviado ao <strong>Situator</strong>. Conecte opcionalmente seu backend Python GPU (<code>poc-backend/main.py</code>).
+          Suba um clipe <strong>.MP4 / .WebM</strong> real para visualizar o rastreamento de esqueleto e bounding boxes do <code>YOLOv8-Pose</code>, o desfoque automático de rostos (LGPD), a validação do Juiz VLM (<code>Qwen3-VL-8B</code>) e o payload enviado ao <strong>Situator</strong> via backend local (<code>poc-backend/main.py</code>).
         </p>
       </div>
 
@@ -1918,7 +1918,7 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               Analisar Clipe Agora
             </button>
-            <span id="poc-status" style="font-size:0.82rem; color:var(--muted); align-self:center;">Pronto para simular.</span>
+            <span id="poc-status" style="font-size:0.82rem; color:var(--muted); align-self:center;">Aguardando vídeo real (.MP4 / .WebM).</span>
           </div>
         </div>
 
@@ -2208,6 +2208,8 @@
 
     // Demo POC (100% Real — sem texto ou esqueleto inventado)
     let uploadedFile = null;
+    let hasAnalyzedCurrentFile = false;
+    let isAnalyzingPoc = false;
 
     function clearCanvasOverlay() {
       const canvas = document.getElementById('poc-canvas');
@@ -2240,6 +2242,7 @@
       const f = e.target.files[0];
       if (!f) return;
       uploadedFile = f;
+      hasAnalyzedCurrentFile = false;
       const video = document.getElementById('poc-video');
       video.src = URL.createObjectURL(f);
       video.style.display = 'block';
@@ -2249,7 +2252,14 @@
       document.getElementById('poc-run').click();
     });
 
+    document.getElementById('poc-video').addEventListener('play', () => {
+      if (uploadedFile && !hasAnalyzedCurrentFile && !isAnalyzingPoc) {
+        document.getElementById('poc-run').click();
+      }
+    });
+
     document.getElementById('poc-run').addEventListener('click', async () => {
+      if (isAnalyzingPoc) return;
       const apiUrl = document.getElementById('poc-api').value.trim();
       const account = document.getElementById('poc-account').value.trim() || 'Mercado Piloto 01';
       const zone = document.getElementById('poc-zone').value.trim() || 'Corredor 03 - Bebidas';
@@ -2264,6 +2274,7 @@
         return;
       }
 
+      isAnalyzingPoc = true;
       statusEl.textContent = 'Processando vídeo real (YOLOv8-Pose + Blur LGPD + VLM)...';
       try {
         const fd = new FormData();
@@ -2275,6 +2286,7 @@
         if (!resp.ok) {
           throw new Error(data.detail || ('HTTP ' + resp.status));
         }
+        hasAnalyzedCurrentFile = true;
 
         const score = data.pose_analysis?.pose_score ?? 0.0;
         const isAlert = Boolean(data.vlm_judge?.confirmed_theft);
@@ -2297,7 +2309,7 @@
             : 'Nenhuma ocorrência enviada ao Situator.',
           payload: data.situator_payload || data
         });
-        statusEl.textContent = 'Concluído em ' + (data.elapsed_ms || 0) + ' ms' + (data.cached ? ' (via cache).' : '.');
+        statusEl.textContent = 'Concluído em ' + (data.elapsed_ms || 0) + ' ms' + (data.cached ? ' (via cache SHA-256).' : ' — exibindo vídeo anotado com esqueleto e blur LGPD.');
         pollSituatorFeed();
       } catch (err) {
         const hint = location.protocol === 'https:' && apiUrl.startsWith('http://')
@@ -2313,6 +2325,8 @@
           action: 'Verifique se o backend (porta 8000) está rodando e acessível.',
           payload: { error: err.message, apiUrl }
         });
+      } finally {
+        isAnalyzingPoc = false;
       }
     });
 

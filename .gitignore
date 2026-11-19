@@ -3,5 +3,10 @@ node_modules/
 .env
 .env.local
 .DS_Store
-
-.vercel
+__pycache__/
+*.pyc
+poc-backend/.env
+poc-backend/.venv/
+poc-backend/__pycache__/
+poc-backend/recordings/
+poc-backend/test_videos/

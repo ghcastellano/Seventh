@@ -40,7 +40,7 @@ app.mount("/recordings", StaticFiles(directory=str(RECORDINGS_DIR)), name="recor
 
 VLM_API_URL = os.getenv("VLM_API_URL", "https://openrouter.ai/api/v1/chat/completions")
 VLM_API_KEY = os.getenv("VLM_API_KEY", "")
-VLM_MODEL = os.getenv("VLM_MODEL", "qwen/qwen-2.5-vl-7b-instruct")
+VLM_MODEL = os.getenv("VLM_MODEL", "qwen/qwen3-vl-8b-instruct")
 SITUATOR_WEBHOOK_URL = os.getenv("SITUATOR_WEBHOOK_URL", "")
 SITUATOR_TOKEN = os.getenv("SITUATOR_TOKEN", "")
 MAX_VLM_CALLS_PER_HOUR = int(os.getenv("MAX_VLM_CALLS_PER_HOUR", "60"))
@@ -97,88 +97,89 @@ def _extract_pose_suspicion(video_path: str, out_name: str, max_frames: int = 35
     best_frame_b64 = None
     best_score = 0.0
 
-    while cap.isOpened() and analyzed < max_frames:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        if frame_idx % step != 0:
-            frame_idx += 1
-            continue
-
-        results = pose_model.track(frame, persist=True, verbose=False)
-        frame_score = 0.0
-        person_count = 0
-
-        for res in results:
-            if res.keypoints is None or res.keypoints.xy is None:
+    try:
+        while cap.isOpened() and analyzed < max_frames:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            if frame_idx % step != 0:
+                frame_idx += 1
                 continue
-            boxes = res.boxes.xyxy if (res.boxes is not None and res.boxes.xyxy is not None) else None
-            track_ids = res.boxes.id if (res.boxes is not None and res.boxes.id is not None) else None
 
-            for idx, kpts in enumerate(res.keypoints.xy):
-                if len(kpts) < 13:
+            results = pose_model.track(frame, persist=True, verbose=False)
+            frame_score = 0.0
+            person_count = 0
+
+            for res in results:
+                if res.keypoints is None or res.keypoints.xy is None:
                     continue
-                person_count += 1
-                _blur_face_lgpd(frame, kpts)
+                boxes = res.boxes.xyxy if (res.boxes is not None and res.boxes.xyxy is not None) else None
+                track_ids = res.boxes.id if (res.boxes is not None and res.boxes.id is not None) else None
 
-                for a, b in SKELETON_LINKS:
-                    if a < len(kpts) and b < len(kpts):
-                        xa, ya = int(kpts[a][0]), int(kpts[a][1])
-                        xb, yb = int(kpts[b][0]), int(kpts[b][1])
-                        if xa > 0 and ya > 0 and xb > 0 and yb > 0:
-                            cv2.line(frame, (xa, ya), (xb, yb), (52, 211, 153), 2)
+                for idx, kpts in enumerate(res.keypoints.xy):
+                    if len(kpts) < 13:
+                        continue
+                    person_count += 1
+                    _blur_face_lgpd(frame, kpts)
 
-                l_wrist, r_wrist = kpts[9], kpts[10]
-                l_hip, r_hip = kpts[11], kpts[12]
-                l_sh = kpts[5]
-                p_score = 0.0
+                    for a, b in SKELETON_LINKS:
+                        if a < len(kpts) and b < len(kpts):
+                            xa, ya = int(kpts[a][0]), int(kpts[a][1])
+                            xb, yb = int(kpts[b][0]), int(kpts[b][1])
+                            if xa > 0 and ya > 0 and xb > 0 and yb > 0:
+                                cv2.line(frame, (xa, ya), (xb, yb), (52, 211, 153), 2)
 
-                if float(l_hip[0]) > 0 and float(l_sh[0]) > 0:
-                    torso_h = max(float(abs(l_hip[1] - l_sh[1])), 40.0)
-                    dists = []
-                    if float(l_wrist[0]) > 0:
-                        dists.append(float(((l_wrist[0] - l_hip[0]) ** 2 + (l_wrist[1] - l_hip[1]) ** 2) ** 0.5))
-                    if float(r_wrist[0]) > 0 and float(r_hip[0]) > 0:
-                        dists.append(float(((r_wrist[0] - r_hip[0]) ** 2 + (r_wrist[1] - r_hip[1]) ** 2) ** 0.5))
-                    if dists:
-                        min_ratio = min(dists) / torso_h
-                        if min_ratio < 0.42:
-                            p_score = min(0.95, 1.0 - min_ratio)
-                            frame_score = max(frame_score, p_score)
+                    l_wrist, r_wrist = kpts[9], kpts[10]
+                    l_hip, r_hip = kpts[11], kpts[12]
+                    l_sh = kpts[5]
+                    p_score = 0.0
 
-                if boxes is not None and idx < len(boxes):
-                    x1, y1, x2, y2 = [int(v) for v in boxes[idx]]
-                    tid = int(track_ids[idx]) if (track_ids is not None and idx < len(track_ids)) else (idx + 1)
-                    b_color = (0, 0, 255) if p_score >= 0.65 else (56, 189, 248)
-                    label = f"ID #{tid} | {int(p_score * 100)}% {'SUSPEITA' if p_score >= 0.65 else 'NORMAL'}"
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), b_color, 2)
-                    cv2.putText(frame, label, (x1, max(18, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.52, b_color, 2)
+                    if float(l_hip[0]) > 0 and float(l_sh[0]) > 0:
+                        torso_h = max(float(abs(l_hip[1] - l_sh[1])), 40.0)
+                        dists = []
+                        if float(l_wrist[0]) > 0:
+                            dists.append(float(((l_wrist[0] - l_hip[0]) ** 2 + (l_wrist[1] - l_hip[1]) ** 2) ** 0.5))
+                        if float(r_wrist[0]) > 0 and float(r_hip[0]) > 0:
+                            dists.append(float(((r_wrist[0] - r_hip[0]) ** 2 + (r_wrist[1] - r_hip[1]) ** 2) ** 0.5))
+                        if dists:
+                            min_ratio = min(dists) / torso_h
+                            if min_ratio < 0.42:
+                                p_score = min(0.95, 1.0 - min_ratio)
+                                frame_score = max(frame_score, p_score)
 
-        if person_count > 0:
-            people_detected_frames += 1
-        if frame_score >= 0.60:
-            suspicious_frames += 1
-        if frame_score > best_score:
-            best_score = frame_score
-            _, buf = cv2.imencode(".jpg", frame)
-            best_frame_b64 = base64.b64encode(buf).decode("utf-8")
+                    if boxes is not None and idx < len(boxes):
+                        x1, y1, x2, y2 = [int(v) for v in boxes[idx]]
+                        tid = int(track_ids[idx]) if (track_ids is not None and idx < len(track_ids)) else (idx + 1)
+                        b_color = (0, 0, 255) if p_score >= 0.65 else (56, 189, 248)
+                        label = f"ID #{tid} | {int(p_score * 100)}% {'SUSPEITA' if p_score >= 0.65 else 'NORMAL'}"
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), b_color, 2)
+                        cv2.putText(frame, label, (x1, max(18, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.52, b_color, 2)
 
-        hud_color = (0, 0, 255) if frame_score >= 0.65 else (56, 189, 248)
-        cv2.putText(
-            frame,
-            f"AXIOMA LGPD-SAFE | Pessoas: {person_count} | Score: {frame_score:.2f}",
-            (14, 28),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.65,
-            hud_color,
-            2,
-        )
-        writer.write(frame)
-        analyzed += 1
-        frame_idx += 1
+            if person_count > 0:
+                people_detected_frames += 1
+            if frame_score >= 0.60:
+                suspicious_frames += 1
+            if frame_score > best_score:
+                best_score = frame_score
+                _, buf = cv2.imencode(".jpg", frame)
+                best_frame_b64 = base64.b64encode(buf).decode("utf-8")
 
-    cap.release()
-    writer.release()
+            hud_color = (0, 0, 255) if frame_score >= 0.65 else (56, 189, 248)
+            cv2.putText(
+                frame,
+                f"AXIOMA LGPD-SAFE | Pessoas: {person_count} | Score: {frame_score:.2f}",
+                (14, 28),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.65,
+                hud_color,
+                2,
+            )
+            writer.write(frame)
+            analyzed += 1
+            frame_idx += 1
+    finally:
+        cap.release()
+        writer.release()
 
     if analyzed == 0:
         raise ValueError("Nenhum frame legível encontrado no arquivo de vídeo.")
@@ -317,7 +318,10 @@ async def analyze_video(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     finally:
         if os.path.exists(tmp_path):
-            os.remove(tmp_path)
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
 
     # Guardrail de custo: só chama VLM se pose_score >= 0.65 E houver >= 2 frames suspeitos
     if pose_res["pose_score"] >= 0.65 and pose_res["suspicious_frames"] >= 2:
