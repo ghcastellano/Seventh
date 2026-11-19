@@ -670,6 +670,103 @@
     .deep-card p, .deep-card li { font-size: 0.85rem; color: #cbd5e1; }
     .deep-card ul { list-style: none; display: grid; gap: 0.35rem; }
 
+    /* Demo POC Tab */
+    .poc-layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 1.15rem;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .poc-layout { grid-template-columns: 1fr; }
+    }
+    .poc-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      display: grid;
+      gap: 0.9rem;
+    }
+    .poc-stage {
+      position: relative;
+      background: #050811;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+      display: grid;
+      place-items: center;
+    }
+    .poc-stage video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+    }
+    .poc-stage canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .poc-placeholder {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .poc-input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+    @media (max-width: 560px) {
+      .poc-input-row { grid-template-columns: 1fr; }
+    }
+    .poc-field label {
+      display: block;
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+    .poc-field input {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.7rem;
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+    .poc-json {
+      background: #050811;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.75rem;
+      color: #a5f3fc;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 240px;
+    }
+    .situator-alert-card {
+      background: var(--surface-2);
+      border-left: 4px solid var(--emerald);
+      border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .situator-alert-card.is-high { border-left-color: #f87171; }
+    .situator-alert-card.is-filtered { border-left-color: var(--accent); }
+
     footer {
       margin-top: 3rem;
       text-align: center;
@@ -703,6 +800,10 @@
         <button class="nav-item" data-view="blueprint" role="tab" aria-selected="false">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>
           Plano &amp; Business Case
+        </button>
+        <button class="nav-item" data-view="poc" role="tab" aria-selected="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Demo POC (Antifurto)
         </button>
       </div>
     </div>
@@ -1729,6 +1830,88 @@
       </div>
     </section>
 
+    <!-- VIEW 5: DEMO POC (ANTIFURTO EM MERCADOS) -->
+    <section id="view-poc" class="view-section">
+      <div class="hero">
+        <span class="eyebrow">Demonstração Interativa • YOLOv8-Pose + Juiz VLM + Situator</span>
+        <h1>Painel Demo da POC — Antifurto em Mercados</h1>
+        <p class="lead">
+          Suba um clipe MP4 de teste (ou escolha um cenário simulado) para visualizar o rastreamento de esqueleto, a validação do Juiz VLM e o payload exato enviado ao <strong>Situator</strong>. Conecte opcionalmente seu backend Python GPU (<code>poc-backend/main.py</code>).
+        </p>
+      </div>
+
+      <div class="poc-layout">
+        <!-- Left: Video & Controls -->
+        <div class="poc-panel">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+            <strong style="font-size:0.95rem;">1. Entrada de Vídeo / Cenário</strong>
+            <div class="sim-tabs" id="poc-presets">
+              <button class="sim-tab active" data-preset="0">Ocultação Casaco</button>
+              <button class="sim-tab" data-preset="1">Celular (Falso Positivo)</button>
+              <button class="sim-tab" data-preset="2">Mochila Gôndola</button>
+            </div>
+          </div>
+
+          <div class="poc-stage" id="poc-stage">
+            <video id="poc-video" controls muted playsinline></video>
+            <div class="poc-placeholder" id="poc-placeholder">
+              Selecione um cenário acima ou envie um arquivo <strong>.MP4 / .WebM</strong> abaixo para rodar a análise de pose + VLM.
+            </div>
+            <canvas id="poc-canvas" width="640" height="360"></canvas>
+          </div>
+
+          <div class="poc-input-row">
+            <div class="poc-field">
+              <label for="poc-file">Upload de vídeo real (.mp4 / .webm)</label>
+              <input type="file" id="poc-file" accept="video/*" />
+            </div>
+            <div class="poc-field">
+              <label for="poc-api">Endpoint Backend GPU (opcional)</label>
+              <input type="url" id="poc-api" placeholder="Ex: http://localhost:8000/analyze (vazio = simulação)" />
+            </div>
+          </div>
+
+          <div class="poc-input-row">
+            <div class="poc-field">
+              <label for="poc-account">Conta no Situator</label>
+              <input type="text" id="poc-account" value="Mercado Piloto 01" />
+            </div>
+            <div class="poc-field">
+              <label for="poc-zone">Zona / Corredor</label>
+              <input type="text" id="poc-zone" value="Corredor 03 - Bebidas" />
+            </div>
+          </div>
+
+          <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+            <button class="btn-replay" id="poc-run">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Analisar Clipe Agora
+            </button>
+            <span id="poc-status" style="font-size:0.82rem; color:var(--muted); align-self:center;">Pronto para simular.</span>
+          </div>
+        </div>
+
+        <!-- Right: Output & Situator Webhook -->
+        <div class="poc-panel">
+          <strong style="font-size:0.95rem;">2. Resultado da IA &amp; Fila do Situator</strong>
+
+          <div class="situator-alert-card" id="poc-alert-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+              <span id="poc-verdict" style="font-weight:700; font-size:0.92rem;">Aguardando análise...</span>
+              <span id="poc-score-badge" class="pill-med">Score: --</span>
+            </div>
+            <p id="poc-reason" style="font-size:0.84rem; color:#cbd5e1;"></p>
+            <p id="poc-action" style="font-size:0.8rem; color:var(--emerald);"></p>
+          </div>
+
+          <div>
+            <div style="font-size:0.78rem; color:var(--muted); margin-bottom:0.35rem;">Payload JSON enviado ao Webhook / API HTTP/JSON do Situator:</div>
+            <pre class="poc-json" id="poc-json">{}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <footer>
       Seventh AI — Análise baseada nos manuais oficiais D-Guard (v7.1.4.9) e Situator (v5).
     </footer>
@@ -1981,6 +2164,178 @@
     document.getElementById('sim-replay').addEventListener('click', runFlowAnimation);
 
     renderSimulator();
+
+    // Demo POC (Antifurto em Mercados)
+    const pocPresets = [
+      {
+        score: 0.89,
+        verdict: "ALERTA REAL • Ocultação Confirmada pelo VLM",
+        cardClass: "situator-alert-card is-high",
+        badgeClass: "pill-high",
+        reason: "YOLOv8-Pose detectou pulso direito na região interna do casaco por 2.4s; Qwen2.5-VL confirmou ocultação de item da gôndola.",
+        action: "Ação na loja: Enviar clipe de 5s ao fiscal → Abordagem preventiva ('Posso ajudar com uma sacola?').",
+        alertTriggered: true
+      },
+      {
+        score: 0.72,
+        verdict: "DESCARTADO PELO VLM • Falso Positivo Evitado",
+        cardClass: "situator-alert-card is-filtered",
+        badgeClass: "pill-low",
+        reason: "Pose sinalizou mão próxima ao bolso (0.72), mas o Juiz VLM identificou que o cliente apenas guardou o próprio smartphone.",
+        action: "Economia operacional: Ocorrência NÃO enviada para a fila do Situator.",
+        alertTriggered: false
+      },
+      {
+        score: 0.84,
+        verdict: "ALERTA REAL • Item Colocado em Mochila Aberta",
+        cardClass: "situator-alert-card is-high",
+        badgeClass: "pill-high",
+        reason: "Rastreio temporal (ST-GCN) + VLM identificaram transferência direta de garrafa da prateleira para mochila lateral.",
+        action: "Ação na loja: Notificar gerente e marcar câmera ao vivo na Matriz Virtual do Situator.",
+        alertTriggered: true
+      }
+    ];
+
+    let activePreset = 0;
+    let uploadedFile = null;
+    let poseAnimId = null;
+
+    function drawSkeletonOverlay(isAlert) {
+      const canvas = document.getElementById('poc-canvas');
+      const ctx = canvas.getContext('2d');
+      let tick = 0;
+      if (poseAnimId) cancelAnimationFrame(poseAnimId);
+
+      function frame() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cx = 320 + Math.sin(tick * 0.04) * 28;
+        const cy = 120;
+        const color = isAlert ? '#f87171' : '#38bdf8';
+
+        // Bounding box
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx - 48, cy - 35, 96, 200);
+        ctx.fillStyle = color;
+        ctx.font = '12px monospace';
+        ctx.fillText(isAlert ? 'PERSON #04 • SUSPECT' : 'PERSON #04 • NORMAL', cx - 48, cy - 42);
+
+        // Minimal 17-keypoint style skeleton
+        const pts = [
+          [cx, cy], [cx, cy + 35],
+          [cx - 24, cy + 38], [cx + 24, cy + 38],
+          [cx - 32, cy + 78], [cx + (isAlert ? 10 : 34), cy + (isAlert ? 92 : 76)],
+          [cx - 16, cy + 95], [cx + 16, cy + 95],
+          [cx - 18, cy + 148], [cx + 18, cy + 148]
+        ];
+        const links = [[0,1],[1,2],[1,3],[2,4],[3,5],[1,6],[1,7],[6,8],[7,9]];
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 2;
+        links.forEach(([a, b]) => {
+          ctx.beginPath();
+          ctx.moveTo(pts[a][0], pts[a][1]);
+          ctx.lineTo(pts[b][0], pts[b][1]);
+          ctx.stroke();
+        });
+        pts.forEach(([x, y]) => {
+          ctx.beginPath();
+          ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#a5f3fc';
+          ctx.fill();
+        });
+
+        tick++;
+        poseAnimId = requestAnimationFrame(frame);
+      }
+      frame();
+    }
+
+    function renderPocResult(res) {
+      const card = document.getElementById('poc-alert-card');
+      card.className = res.cardClass;
+      document.getElementById('poc-verdict').textContent = res.verdict;
+      const badge = document.getElementById('poc-score-badge');
+      badge.className = res.badgeClass;
+      badge.textContent = 'Score: ' + Math.round(res.score * 100) + '%';
+      document.getElementById('poc-reason').textContent = res.reason;
+      document.getElementById('poc-action').textContent = res.action;
+      document.getElementById('poc-json').textContent = JSON.stringify(res.payload, null, 2);
+      drawSkeletonOverlay(res.alertTriggered);
+    }
+
+    document.getElementById('poc-presets').addEventListener('click', (e) => {
+      const btn = e.target.closest('.sim-tab');
+      if (!btn) return;
+      activePreset = Number(btn.dataset.preset);
+      document.querySelectorAll('#poc-presets .sim-tab').forEach((b, i) => b.classList.toggle('active', i === activePreset));
+    });
+
+    document.getElementById('poc-file').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      uploadedFile = f;
+      const video = document.getElementById('poc-video');
+      video.src = URL.createObjectURL(f);
+      video.style.display = 'block';
+      document.getElementById('poc-placeholder').style.display = 'none';
+      video.play().catch(() => {});
+      document.getElementById('poc-status').textContent = 'Vídeo carregado: ' + f.name;
+    });
+
+    document.getElementById('poc-run').addEventListener('click', async () => {
+      const apiUrl = document.getElementById('poc-api').value.trim();
+      const account = document.getElementById('poc-account').value.trim() || 'Mercado Piloto 01';
+      const zone = document.getElementById('poc-zone').value.trim() || 'Corredor 03 - Bebidas';
+      const statusEl = document.getElementById('poc-status');
+
+      if (apiUrl && uploadedFile) {
+        statusEl.textContent = 'Enviando vídeo para GPU...';
+        try {
+          const fd = new FormData();
+          fd.append('file', uploadedFile);
+          fd.append('account', account);
+          fd.append('zone', zone);
+          const resp = await fetch(apiUrl, { method: 'POST', body: fd });
+          const data = await resp.json();
+          const score = data.pose_analysis?.pose_score ?? 0.75;
+          const isAlert = score >= 0.70;
+          renderPocResult({
+            score,
+            verdict: isAlert ? 'ALERTA REAL (Backend GPU)' : 'BAIXO RISCO (Backend GPU)',
+            cardClass: isAlert ? 'situator-alert-card is-high' : 'situator-alert-card is-filtered',
+            badgeClass: isAlert ? 'pill-high' : 'pill-low',
+            reason: data.vlm_judge?.reason || 'Análise concluída pelo backend.',
+            action: data.situator_webhook_sent ? 'Webhook disparado para o Situator!' : 'Payload pronto (configure SITUATOR_WEBHOOK_URL para envio real).',
+            alertTriggered: isAlert,
+            payload: data.situator_payload || data
+          });
+          statusEl.textContent = 'Concluído em ' + (data.elapsed_ms || 0) + ' ms.';
+          return;
+        } catch (err) {
+          statusEl.textContent = 'Falha no backend (' + err.message + '). Usando simulação local.';
+        }
+      }
+
+      const p = pocPresets[activePreset];
+      statusEl.textContent = 'Simulação concluída (modo local).';
+      renderPocResult({
+        ...p,
+        payload: {
+          token: "demo-token-situator",
+          eventCode: p.alertTriggered ? "AI_SHOPLIFTING_SUSPECT" : "AI_FALSE_POSITIVE_FILTERED",
+          priority: p.alertTriggered ? "ALTA" : "IGNORADO",
+          account,
+          zone,
+          confidence: p.score,
+          description: p.reason,
+          recommendedAction: p.alertTriggered ? "Abordagem preventiva ('Posso ajudar?')" : "Nenhuma ação necessária",
+          timestamp: new Date().toISOString()
+        }
+      });
+    });
+
+    // Inicializa com o 1o cenário simulado
+    document.getElementById('poc-run').click();
   </script>
 </body>
 </html>
