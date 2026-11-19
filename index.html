@@ -45,7 +45,7 @@
       border-bottom: 1px solid var(--border);
     }
     .nav-inner {
-      max-width: 1080px;
+      max-width: 1260px;
       margin: 0 auto;
       padding: 0.65rem 1rem;
       display: flex;
@@ -123,7 +123,7 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
-    .container { max-width: 1080px; margin: 0 auto; padding: 1.25rem 1rem 2.75rem; }
+    .container { max-width: 1260px; margin: 0 auto; padding: 1.25rem 1.15rem 2.75rem; }
     .view-section { display: none; animation: fadeIn 0.25s ease; }
     .view-section.active { display: block; }
     @keyframes fadeIn {
@@ -702,14 +702,16 @@
     /* Demo POC Tab */
     .poc-layout {
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 1.15rem;
+      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+      gap: 1.25rem;
       align-items: start;
     }
-    @media (max-width: 860px) {
-      .poc-layout { grid-template-columns: 1fr; }
+    @media (max-width: 1020px) {
+      .poc-layout { grid-template-columns: minmax(0, 1fr); }
     }
     .poc-panel {
+      min-width: 0;
+      width: 100%;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -723,9 +725,13 @@
       border: 1px solid var(--border);
       border-radius: 10px;
       overflow: hidden;
-      min-height: 240px;
+      min-height: 360px;
+      width: 100%;
       display: grid;
       place-items: center;
+    }
+    @media (max-width: 640px) {
+      .poc-stage { min-height: 220px; }
     }
     .poc-stage.has-video {
       min-height: 0;
@@ -733,7 +739,7 @@
     .poc-stage video {
       width: 100%;
       height: auto;
-      max-height: 460px;
+      max-height: 560px;
       object-fit: contain;
       display: none;
     }
@@ -790,28 +796,44 @@
     }
     .poc-input-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.65rem;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.75rem;
+      align-items: end;
     }
-    @media (max-width: 560px) {
-      .poc-input-row { grid-template-columns: 1fr; }
+    .poc-input-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 0.65rem;
+      align-items: end;
+    }
+    .poc-field {
+      min-width: 0;
     }
     .poc-field label {
       display: block;
-      font-size: 0.74rem;
+      font-size: 0.75rem;
       color: var(--muted);
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.3rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .poc-field input {
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 0.5rem 0.7rem;
+      padding: 0.52rem 0.72rem;
       color: var(--text);
       font-size: 0.82rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .poc-json {
+      min-width: 0;
+      max-width: 100%;
       background: #050811;
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -821,8 +843,9 @@
       color: #a5f3fc;
       overflow-x: auto;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
       word-break: break-word;
-      max-height: 240px;
+      max-height: 260px;
     }
     .situator-alert-card {
       background: var(--surface-2);
@@ -1975,40 +1998,45 @@
             <span id="poc-status" style="font-size:0.82rem; color:var(--muted); align-self:center;">Aguardando vídeo real (.MP4 / .WebM).</span>
           </div>
 
-          <div style="border-top:1px solid var(--border); padding-top:0.85rem; display:grid; gap:0.65rem;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem;">
-              <strong style="font-size:0.86rem;">Integração Real Seventh (D-Guard CGI + Situator)</strong>
+          <div style="border-top:1px solid var(--border); padding-top:0.9rem; display:grid; gap:0.75rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+              <strong style="font-size:0.88rem;">Integração Real Seventh (D-Guard CGI + Situator Web)</strong>
               <span id="dguard-conn-badge" class="pill-med">Verificando D-Guard...</span>
             </div>
             <div class="poc-input-row">
               <div class="poc-field">
-                <label for="poc-dguard-url">URL D-Guard HTTP/CGI (Interface V4)</label>
+                <label for="poc-dguard-url" title="URL D-Guard HTTP/CGI (Interface V4)">URL D-Guard CGI</label>
                 <input type="url" id="poc-dguard-url" value="http://127.0.0.1:80" placeholder="http://127.0.0.1:80 ou :8081" />
               </div>
               <div class="poc-field">
-                <label for="poc-situator-url">Webhook Situator (8090 ou Produção)</label>
+                <label for="poc-situator-url" title="Webhook Situator Web (8090 ou Produção)">Webhook Situator Web</label>
                 <input type="url" id="poc-situator-url" value="http://127.0.0.1:8090/webhook" />
               </div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr 0.7fr; gap:0.55rem;">
+            <div class="poc-input-3">
               <div class="poc-field">
                 <label for="poc-dguard-user">Usuário D-Guard</label>
                 <input type="text" id="poc-dguard-user" value="admin" />
               </div>
               <div class="poc-field">
                 <label for="poc-dguard-pass">Senha D-Guard</label>
-                <input type="password" id="poc-dguard-pass" value="" placeholder="(se configurada)" />
+                <input type="password" id="poc-dguard-pass" value="" placeholder="opcional" />
               </div>
               <div class="poc-field">
                 <label for="poc-dguard-cam">Câmera ID</label>
                 <input type="text" id="poc-dguard-cam" value="1" />
               </div>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:0.55rem;">
               <button type="button" class="btn-replay" id="poc-test-seventh" style="background:#0f172a; border:1px solid var(--border);">
-                Testar Conexão &amp; Disparo Real Seventh
+                Testar Conexão &amp; Disparo Real
               </button>
-              <span style="font-size:0.74rem; color:var(--muted);">Stream p/ D-Guard: <code>http://127.0.0.1:8000/dguard/virtual-cam.mjpeg</code></span>
+              <a href="http://127.0.0.1:8090/" target="_blank" rel="noopener" class="btn-replay" style="text-decoration:none; background:rgba(52,211,153,0.14); color:#34d399; border:1px solid rgba(52,211,153,0.35);">
+                Abrir Situator Web (8090) ↗
+              </a>
+            </div>
+            <div style="font-size:0.74rem; color:var(--muted); overflow-wrap:anywhere;">
+              Stream MJPEG p/ cadastrar no D-Guard: <code>http://127.0.0.1:8000/dguard/virtual-cam.mjpeg</code>
             </div>
           </div>
         </div>

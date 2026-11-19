@@ -163,23 +163,24 @@ def _score_person_pose(kpts: Any, confs: Any = None) -> tuple[float, str]:
 
 
 def _build_storyboard_b64(sampled_frames: list[np.ndarray], peak_pos: int) -> tuple[str, str]:
-    """Gera colagem 2x2 cronológica (T1..T4) garantindo inclusão do pico suspeito, já com blur LGPD."""
+    """Gera colagem 2x2 cronológica (T1..T4) focada antes, durante e após o pico suspeito."""
     n = len(sampled_frames)
     if n == 0:
         return "", ""
     if n <= 4:
         idxs = [min(i, n - 1) for i in range(4)]
     else:
+        delta = max(2, n // 9)
         raw = [
-            0,
-            max(1, min(n - 2, peak_pos)),
-            max(1, min(n - 2, peak_pos + max(1, n // 8))),
+            max(0, peak_pos - delta),
+            max(0, min(n - 1, peak_pos)),
+            min(n - 1, peak_pos + delta),
             n - 1,
         ]
         # Garante 4 índices ordenados e distintos quando possível
         idxs = sorted(set(raw))
         while len(idxs) < 4:
-            for cand in [int(n * 0.25), int(n * 0.5), int(n * 0.75), n - 1]:
+            for cand in [0, int(n * 0.25), int(n * 0.5), int(n * 0.75), n - 1]:
                 if cand not in idxs:
                     idxs.append(cand)
                 if len(idxs) == 4:
@@ -229,7 +230,7 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
         pose_model.predictor.trackers.clear()
 
     if total_frames > 0:
-        target_samples = min(total_frames, max(22, min(55, int(round(max(duration_s, 1.0) * 2.5)))))
+        target_samples = min(total_frames, max(24, min(65, int(round(max(duration_s, 1.0) * 3.0)))))
         step = max(1, total_frames // target_samples)
         expected_written = (total_frames + step - 1) // step
         out_fps = max(1.0, expected_written / duration_s) if duration_s > 0 else 4.0
@@ -256,17 +257,19 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
 
     try:
         while cap.isOpened():
+            if frame_idx % step != 0:
+                if not cap.grab():
+                    break
+                frame_idx += 1
+                continue
             ret, frame = cap.read()
             if not ret:
                 break
-            if frame_idx % step != 0:
-                frame_idx += 1
-                continue
 
             if frame.shape[1] != width or frame.shape[0] != height:
                 frame = cv2.resize(frame, (width, height))
 
-            results = pose_model.track(frame, imgsz=384, persist=True, verbose=False)
+            results = pose_model.track(frame, imgsz=448, persist=True, verbose=False)
             frame_score = 0.0
             person_count = 0
 
