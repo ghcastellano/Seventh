@@ -34,7 +34,7 @@ SITUATOR_WEBHOOK_URL = os.getenv("SITUATOR_WEBHOOK_URL", "")
 SITUATOR_TOKEN = os.getenv("SITUATOR_TOKEN", "")
 
 
-def _extract_pose_suspicion(video_path: str, max_frames: int = 90) -> dict[str, Any]:
+def _extract_pose_suspicion(video_path: str, max_frames: int = 20) -> dict[str, Any]:
     """
     Analisa frames do vídeo com YOLOv8-Pose e calcula um score heurístico inicial
     baseado na proximidade dos pulsos (keypoints 9 e 10) em relação ao quadril/tronco (11 e 12).

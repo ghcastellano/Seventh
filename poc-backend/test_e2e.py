@@ -33,7 +33,7 @@ def main() -> None:
                 API_URL,
                 files={"file": ("teste_corredor.mp4", f, "video/mp4")},
                 data={"account": "Mercado Piloto 01", "zone": "Corredor 03 - Bebidas"},
-                timeout=60.0,
+                timeout=180.0,
             )
         resp.raise_for_status()
         print("OK! Resposta da API POC:")
