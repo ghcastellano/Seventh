@@ -744,6 +744,44 @@
       height: 100%;
       pointer-events: none;
     }
+    .poc-loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 8, 17, 0.78);
+      backdrop-filter: blur(2px);
+      display: none;
+      place-items: center;
+      text-align: center;
+      padding: 1.2rem;
+      pointer-events: none;
+      z-index: 4;
+    }
+    .poc-loading-overlay.active { display: grid; }
+    .poc-spinner {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 3px solid rgba(56, 189, 248, 0.25);
+      border-top-color: var(--accent);
+      margin: 0 auto 0.65rem;
+      animation: poc-spin 0.8s linear infinite;
+    }
+    @keyframes poc-spin { to { transform: rotate(360deg); } }
+    .poc-progress-track {
+      height: 4px;
+      background: var(--surface-2);
+      border-radius: 999px;
+      overflow: hidden;
+      display: none;
+    }
+    .poc-progress-track.active { display: block; }
+    .poc-progress-bar {
+      width: 38%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--emerald));
+      animation: poc-slide 1.1s ease-in-out infinite alternate;
+    }
+    @keyframes poc-slide { from { transform: translateX(-20%); } to { transform: translateX(200%); } }
     .poc-placeholder {
       text-align: center;
       padding: 1.5rem;
@@ -1875,7 +1913,7 @@
         <span class="eyebrow">Demonstração Interativa • YOLOv8-Pose + Juiz VLM + Situator</span>
         <h1>Painel Demo da POC — Antifurto em Mercados</h1>
         <p class="lead">
-          Suba um clipe <strong>.MP4 / .WebM</strong> real para visualizar o rastreamento de esqueleto e bounding boxes do <code>YOLOv8-Pose</code>, o desfoque automático de rostos (LGPD), a validação do Juiz VLM (<code>Qwen3-VL-8B</code>) e o payload enviado ao <strong>Situator</strong> via backend local (<code>poc-backend/main.py</code>).
+          Suba um clipe <strong>.MP4 / .WebM</strong> real para visualizar o rastreamento de esqueleto e bounding boxes do <code>YOLOv8-Pose</code>, o desfoque automático de rostos (LGPD), a validação temporal do Juiz VLM e o disparo real no <strong>Situator / D-Guard</strong>.
         </p>
       </div>
 
@@ -1884,16 +1922,28 @@
         <div class="poc-panel">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
             <strong style="font-size:0.95rem;">1. Entrada de Vídeo Real (.MP4 / .WebM)</strong>
-            <span class="pill-low">100% Real • Sem Simulação Falsa</span>
+            <span class="pill-low">100% Real • Automático ao Selecionar</span>
+          </div>
+
+          <div style="font-size:0.78rem; color:#93c5fd; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:0.45rem 0.7rem;">
+            <strong>Como usar:</strong> 1) Escolha o arquivo abaixo → 2) <strong>Não precisa apertar Play</strong>: a IA analisa sozinha (~5–8s na CPU) → 3) O vídeo rastreado com esqueletos + resultado aparecem automaticamente.
           </div>
 
           <div class="poc-stage" id="poc-stage">
             <video id="poc-video" controls muted playsinline></video>
             <div class="poc-placeholder" id="poc-placeholder">
-              Envie um vídeo <strong>.MP4 / .WebM</strong> abaixo e clique em <strong>Analisar Clipe Agora</strong> para rodar o <code>YOLOv8-Pose</code> + Blur LGPD + Juiz VLM.
+              Escolha um vídeo <strong>.MP4 / .WebM</strong> abaixo — a análise (<code>YOLOv8-Pose</code> + Blur LGPD + VLM) inicia sozinha.
+            </div>
+            <div class="poc-loading-overlay" id="poc-loading-overlay">
+              <div>
+                <div class="poc-spinner"></div>
+                <div id="poc-loading-title" style="font-weight:700; font-size:0.92rem; color:#f8fafc;">Analisando vídeo automaticamente...</div>
+                <div id="poc-loading-timer" style="font-size:0.8rem; color:var(--accent); margin-top:0.25rem;">0.0s • Não precisa clicar em Play</div>
+              </div>
             </div>
             <canvas id="poc-canvas" width="640" height="360"></canvas>
           </div>
+          <div class="poc-progress-track" id="poc-progress-track"><div class="poc-progress-bar"></div></div>
 
           <div class="poc-input-row">
             <div class="poc-field">
@@ -2258,6 +2308,37 @@
     let hasAnalyzedCurrentFile = false;
     let activeAbortController = null;
     let latestRequestId = 0;
+    let loadingTimerId = null;
+
+    function setLoadingState(active, filename = '') {
+      const overlay = document.getElementById('poc-loading-overlay');
+      const track = document.getElementById('poc-progress-track');
+      const runBtn = document.getElementById('poc-run');
+      const timerEl = document.getElementById('poc-loading-timer');
+      const titleEl = document.getElementById('poc-loading-title');
+      if (loadingTimerId) {
+        clearInterval(loadingTimerId);
+        loadingTimerId = null;
+      }
+      if (active) {
+        const startedAt = performance.now();
+        titleEl.textContent = 'Analisando ' + (filename || 'vídeo') + '...';
+        timerEl.textContent = '0.0s • Não precisa clicar em Play';
+        overlay.classList.add('active');
+        track.classList.add('active');
+        runBtn.disabled = true;
+        runBtn.style.opacity = '0.6';
+        loadingTimerId = setInterval(() => {
+          const secs = ((performance.now() - startedAt) / 1000).toFixed(1);
+          timerEl.textContent = `${secs}s • Processando YOLOv8-Pose + Blur LGPD + VLM (não precisa clicar em Play)`;
+        }, 150);
+      } else {
+        overlay.classList.remove('active');
+        track.classList.remove('active');
+        runBtn.disabled = false;
+        runBtn.style.opacity = '1';
+      }
+    }
 
     function clearCanvasOverlay() {
       const canvas = document.getElementById('poc-canvas');
@@ -2374,7 +2455,8 @@
       const myReqId = ++latestRequestId;
 
       resetPocOutput(uploadedFile.name);
-      statusEl.textContent = 'Analisando vídeo inteiro (' + uploadedFile.name + ')...';
+      setLoadingState(true, uploadedFile.name);
+      statusEl.textContent = 'Analisando vídeo inteiro (' + uploadedFile.name + ')... aguarde sem precisar clicar em Play.';
 
       try {
         const fd = new FormData();
@@ -2405,6 +2487,7 @@
           `Frames: ${pa.frames_analyzed ?? 0} • Suspeitos (Pose): ${pa.suspicious_frames ?? 0} • ` +
           `VLM: ${data.vlm_judge?.model || (data.vlm_judge?.used_vlm ? 'ativo' : 'poupado (custo zero)')}`;
 
+        setLoadingState(false);
         renderPocResult({
           recordingUrl: recFile ? (baseApi + '/recordings/' + recFile) : null,
           score,
@@ -2423,11 +2506,12 @@
           payload: data.situator_payload || data,
           rawData: data
         });
-        statusEl.textContent = 'Concluído em ' + (data.elapsed_ms || 0) + ' ms (' + (pa.duration_s ?? '--') + 's de vídeo)' + (data.cached ? ' [cache SHA-256].' : ' — vídeo anotado em loop.');
+        statusEl.textContent = 'Pronto em ' + ((data.elapsed_ms || 0) / 1000).toFixed(1) + 's (' + (pa.duration_s ?? '--') + 's de vídeo)' + (data.cached ? ' [cache].' : ' — vídeo rastreado tocando em loop.');
         pollSituatorFeed();
         checkSeventhStatus();
       } catch (err) {
         if (err.name === 'AbortError' || myReqId !== latestRequestId) return;
+        setLoadingState(false);
         const hint = location.protocol === 'https:' && cfg.apiUrl.startsWith('http://')
           ? ' Abra em http://127.0.0.1:5500/ para conectar ao backend local.'
           : '';
@@ -2457,12 +2541,12 @@
       if (uploadedObjectUrl) URL.revokeObjectURL(uploadedObjectUrl);
       uploadedObjectUrl = URL.createObjectURL(f);
       const video = document.getElementById('poc-video');
+      video.pause();
       video.src = uploadedObjectUrl;
       video.style.display = 'block';
       document.getElementById('poc-stage').classList.add('has-video');
       document.getElementById('poc-placeholder').style.display = 'none';
       runPocAnalysis();
-      video.play().catch(() => {});
     });
 
     document.getElementById('poc-video').addEventListener('play', () => {

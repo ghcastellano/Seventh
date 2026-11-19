@@ -219,18 +219,23 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
         cap.release()
         raise ValueError("Vídeo sem dimensões válidas.")
 
+    if width > 576:
+        scale = 576.0 / width
+        width = 576
+        height = max(2, int(round(height * scale)) // 2 * 2)
+
     # Reseta estado de rastreamento entre vídeos distintos para manter IDs limpos
     if getattr(pose_model, "predictor", None) is not None and getattr(pose_model.predictor, "trackers", None):
         pose_model.predictor.trackers.clear()
 
     if total_frames > 0:
-        target_samples = min(total_frames, max(35, min(140, int(round(max(duration_s, 1.0) * 5.0)))))
+        target_samples = min(total_frames, max(22, min(55, int(round(max(duration_s, 1.0) * 2.5)))))
         step = max(1, total_frames // target_samples)
         expected_written = (total_frames + step - 1) // step
-        out_fps = max(1.5, expected_written / duration_s) if duration_s > 0 else 5.0
+        out_fps = max(1.0, expected_written / duration_s) if duration_s > 0 else 4.0
     else:
-        step = max(1, int(round(fps / 5.0)))
-        out_fps = 5.0
+        step = max(1, int(round(fps / 3.0)))
+        out_fps = 3.0
 
     rec_filename = f"annotated_{out_stem}_{vid_hash_short}.webm"
     rec_path = RECORDINGS_DIR / rec_filename
@@ -258,7 +263,10 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
                 frame_idx += 1
                 continue
 
-            results = pose_model.track(frame, persist=True, verbose=False)
+            if frame.shape[1] != width or frame.shape[0] != height:
+                frame = cv2.resize(frame, (width, height))
+
+            results = pose_model.track(frame, imgsz=384, persist=True, verbose=False)
             frame_score = 0.0
             person_count = 0
 
@@ -464,7 +472,7 @@ async def _probe_dguard(base_url: str, user: str, password: str) -> dict[str, An
         urls_to_try.append("http://127.0.0.1:8081")
 
     auth = _dguard_auth(user, password)
-    async with httpx.AsyncClient(timeout=2.5) as client:
+    async with httpx.AsyncClient(timeout=0.5) as client:
         for url in urls_to_try:
             try:
                 srv = await client.get(f"{url}/servidor.cgi", auth=auth)
@@ -685,7 +693,7 @@ async def analyze_video(
         tmp_path = tmp.name
 
     try:
-        pose_res = _extract_pose_suspicion(tmp_path, clean_stem, short_hash)
+        pose_res = await asyncio.to_thread(_extract_pose_suspicion, tmp_path, clean_stem, short_hash)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     finally:
