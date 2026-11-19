@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Situator Web v5 (POC Cloud 24/7) — Fila Operacional &amp; ROI | Axioma Vision + Seventh</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --surface: #0f172a;
+      --surface-2: #131c31;
+      --border: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --emerald: #34d399;
+      --amber: #fbbf24;
+      --coral: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid var(--border);
+      padding: 0.9rem 1.4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 12px var(--emerald);
+      display: inline-block;
+    }
+    .badge {
+      background: rgba(56, 189, 248, 0.14);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge-cloud {
+      background: rgba(52, 211, 153, 0.14);
+      color: var(--emerald);
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    main {
+      max-width: 1240px;
+      margin: 1.4rem auto;
+      padding: 0 1.2rem 2.5rem;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.9rem 1.05rem;
+    }
+    .kpi-card small {
+      color: var(--muted);
+      font-size: 0.73rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: block;
+    }
+    .kpi-card strong {
+      font-size: 1.45rem;
+      display: block;
+      margin-top: 0.25rem;
+    }
+    .kpi-card span {
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: block;
+      margin-top: 0.2rem;
+    }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.8rem 1rem;
+    }
+    .btn {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { background: #334155; }
+    .btn-primary {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .btn-emerald {
+      background: rgba(52, 211, 153, 0.16);
+      color: var(--emerald);
+      border-color: rgba(52, 211, 153, 0.4);
+    }
+    .btn-amber {
+      background: rgba(251, 191, 36, 0.13);
+      color: var(--amber);
+      border-color: rgba(251, 191, 36, 0.35);
+    }
+    .grid {
+      display: grid;
+      gap: 0.9rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--coral);
+      border-radius: 12px;
+      padding: 1.05rem;
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 1.1rem;
+      align-items: start;
+    }
+    .card.done {
+      border-left-color: var(--emerald);
+      opacity: 0.92;
+    }
+    .card.fp {
+      border-left-color: var(--amber);
+      opacity: 0.86;
+    }
+    .media-col {
+      display: grid;
+      gap: 0.5rem;
+    }
+    .card img, .card video {
+      width: 100%;
+      height: 145px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #020617;
+    }
+    .meta {
+      font-size: 0.77rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+      overflow-wrap: anywhere;
+    }
+    .pop-box {
+      margin-top: 0.6rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.8rem;
+      color: #cbd5e1;
+    }
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+    @media (max-width: 720px) {
+      .card { grid-template-columns: minmax(0, 1fr); }
+      .card img, .card video { height: 190px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="dot"></span>
+      <strong>Seventh Situator Web v5 (Console Operacional Cloud 24/7)</strong>
+      <span class="badge">Integração HTTP/JSON • Axioma Vision IA</span>
+      <span id="conn-mode-pill" class="badge-cloud">Sincronizado na Nuvem (24/7 sem servidor local)</span>
+    </div>
+    <div style="display:flex; gap:0.55rem; align-items:center; flex-wrap:wrap;">
+      <a href="index.html#poc-live" class="btn btn-primary">← Voltar ao Painel da POC</a>
+      <button type="button" class="btn" id="btn-seed">+ Simular Novo Alerta IA</button>
+      <button type="button" class="btn" id="btn-clear">Restaurar Fila Padrão</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <small>Ocorrências em Aberto</small>
+        <strong id="k-open" style="color:var(--coral);">0</strong>
+        <span>Aguardando ação do operador</span>
+      </div>
+      <div class="kpi-card">
+        <small>Falsos Positivos Evitados (VLM)</small>
+        <strong id="k-fp" style="color:var(--emerald);">0</strong>
+        <span>Filtrados antes de poluir a central</span>
+      </div>
+      <div class="kpi-card">
+        <small>Economia de VLM (Pose Local)</small>
+        <strong id="k-saved" style="color:var(--accent);">0</strong>
+        <span>Clipes normais barrados a custo zero</span>
+      </div>
+      <div class="kpi-card">
+        <small>Furtos Reais / Precisão IA</small>
+        <strong id="k-prec" style="color:#f8fafc;">100%</strong>
+        <span id="k-real-sub">2 ocorrências confirmadas</span>
+      </div>
+      <div class="kpi-card">
+        <small>ROI • Valor Recuperado na POC</small>
+        <strong id="k-brl" style="color:var(--amber);">R$ 0</strong>
+        <span>Abordagens preventivas concluídas</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div style="font-size:0.83rem; color:#cbd5e1;">
+        <strong>Sincronização Bidirecional Ativa:</strong> qualquer vídeo analisado na página da POC ou desfecho clicado abaixo atualiza instantaneamente ambos os painéis no navegador do visitante.
+      </div>
+      <span id="count-badge" class="badge">0 abertas / 0 total</span>
+    </div>
+
+    <div id="list" class="grid"></div>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'axioma_situator_cloud_state_v2';
+    const bc = ('BroadcastChannel' in window) ? new BroadcastChannel('axioma_situator_sync') : null;
+    const params = new URLSearchParams(location.search);
+    const apiBase = (params.get('api') || '').replace(/\/+$/, '');
+    let backendSituatorUrl = null;
+
+    const DEFAULT_STATE = {
+      stats: { fp: 3, savedVlm: 2, realTheft: 2, recoveredBrl: 120 },
+      events: [
+        {
+          id: 'sit-casaco-01',
+          status: 'ABERTA',
+          outcome: '',
+          outcomeLabel: '',
+          recoveredBrl: 0,
+          eventCode: 'AI_SHOPLIFTING_SUSPECT',
+          priority: 'ALTA',
+          account: 'Mercado Piloto 01',
+          zone: 'Corredor 03 - Bebidas & Alto Valor',
+          videoFile: 'furto_real_01_casaco.mp4',
+          annotatedVideoUrl: 'samples/furto_real_01_casaco_annotated.webm',
+          localEvidenceUrl: 'samples/evidence_furto_real_01_casaco.jpg',
+          confidence: 0.94,
+          description: 'Cliente retira produto da vitrine e o oculta dentro do casaco entre T2 e T3, fechando a lapela em T4 [persistência biomecânica + VLM confirmado].',
+          recommendedAction: 'POP-01: Abordagem preventiva de atendimento cordial no corredor ("Olá, posso ajudar a encontrar algum item ou levar ao caixa?").',
+          dguardAction: 'Bookmark CGI gravado na Câmera 01 + Pop-up Matriz Virtual D-Guard',
+          timestamp: new Date(Date.now() - 95000).toISOString()
+        },
+        {
+          id: 'sit-camisa-02',
+          status: 'CONCLUIDA',
+          outcome: 'RECUPERADO',
+          outcomeLabel: 'Recuperado (R$ 120) ✓',
+          recoveredBrl: 120,
+          eventCode: 'AI_SHOPLIFTING_SUSPECT',
+          priority: 'ALTA',
+          account: 'Mercado Piloto 01',
+          zone: 'Corredor 02 - Eletrônicos & Balcão',
+          videoFile: 'furto_real_02_camisa.mp4',
+          annotatedVideoUrl: 'samples/furto_real_02_camisa_annotated.webm',
+          localEvidenceUrl: 'samples/evidence_furto_real_02_camisa.jpg',
+          confidence: 0.91,
+          description: 'Segundo indivíduo realiza movimento rápido de ocultação sob a camisa enquanto o primeiro distrai o atendente no balcão.',
+          recommendedAction: 'POP-01: Presença preventiva de fiscal de loja na saída do corredor e conferência no PDV.',
+          dguardAction: 'Bookmark CGI gravado na Câmera 05 + Alerta Situator v5',
+          timestamp: new Date(Date.now() - 360000).toISOString()
+        }
+      ]
+    };
+
+    function loadCloudState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_STATE));
+          return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed.events || !Array.isArray(parsed.events)) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_STATE));
+          return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        }
+        return parsed;
+      } catch {
+        return JSON.parse(JSON.stringify(DEFAULT_STATE));
+      }
+    }
+
+    function saveCloudState(state) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (bc) bc.postMessage({ type: 'STATE_UPDATED', state });
+      } catch {}
+    }
+
+    async function detectLocalBackend() {
+      if (apiBase) {
+        backendSituatorUrl = apiBase + '/situator';
+      } else if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
+        backendSituatorUrl = (location.port === '8090') ? '' : 'http://127.0.0.1:8090';
+      }
+      if (backendSituatorUrl !== null) {
+        try {
+          const ctrl = new AbortController();
+          setTimeout(() => ctrl.abort(), 1200);
+          const r = await fetch(backendSituatorUrl + '/events', { signal: ctrl.signal });
+          if (r.ok) {
+            const pill = document.getElementById('conn-mode-pill');
+            pill.textContent = 'Conectado ao Backend Situator Ao Vivo';
+            return true;
+          }
+        } catch {}
+      }
+      backendSituatorUrl = null;
+      return false;
+    }
+
+    function renderState(state) {
+      const evs = state.events || [];
+      const st = state.stats || { fp: 3, savedVlm: 2, realTheft: 2, recoveredBrl: 120 };
+      const openCount = evs.filter(e => e.status !== 'CONCLUIDA').length;
+      const fpMarked = evs.filter(e => e.outcome === 'FALSO_ALARME').length;
+      const validAlerts = Math.max(0, evs.length - fpMarked);
+      const precPct = evs.length > 0 ? Math.round((validAlerts / evs.length) * 100) : 100;
+
+      document.getElementById('k-open').textContent = openCount;
+      document.getElementById('k-fp').textContent = st.fp ?? 3;
+      document.getElementById('k-saved').textContent = st.savedVlm ?? 2;
+      document.getElementById('k-prec').textContent = precPct + '%';
+      document.getElementById('k-real-sub').textContent = (st.realTheft ?? evs.length) + ' ocorrências confirmadas';
+      document.getElementById('k-brl').textContent = 'R$ ' + (st.recoveredBrl ?? 0).toLocaleString('pt-BR');
+      document.getElementById('count-badge').textContent = `${openCount} abertas / ${evs.length} total`;
+
+      const list = document.getElementById('list');
+      if (evs.length === 0) {
+        list.innerHTML = '<div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; color:var(--muted);">Nenhuma ocorrência na fila. Clique em "+ Simular Novo Alerta IA" acima ou selecione um vídeo na POC.</div>';
+        return;
+      }
+
+      list.innerHTML = evs.map(ev => {
+        const isDone = ev.status === 'CONCLUIDA';
+        const isFp = ev.outcome === 'FALSO_ALARME';
+        const cardCls = isFp ? 'card fp' : (isDone ? 'card done' : 'card');
+        const imgUrl = ev.localEvidenceUrl || (ev.evidenceFile ? ('samples/' + ev.evidenceFile) : 'samples/evidence_furto_real_01_casaco.jpg');
+        const vidHtml = ev.annotatedVideoUrl
+          ? `<video src="${ev.annotatedVideoUrl}" autoplay loop muted playsinline controls></video>`
+          : `<img src="${imgUrl}" alt="Evidência LGPD" />`;
+
+        return `
+          <div class="${cardCls}">
+            <div class="media-col">
+              ${vidHtml}
+              <div style="font-size:0.72rem; color:var(--muted); display:flex; justify-content:space-between;">
+                <span>HUD 2026 • LGPD ON</span>
+                <span>Score: ${Math.round((ev.confidence || 0.92) * 100)}%</span>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+                <strong style="font-size:1rem;">${ev.eventCode || 'AI_SHOPLIFTING_SUSPECT'} • ${ev.zone || 'Corredor 03'}</strong>
+                <span class="badge" style="${isFp ? 'background:rgba(251,191,36,0.15);color:#fbbf24;border-color:rgba(251,191,36,0.4)' : (isDone ? 'background:rgba(52,211,153,0.15);color:#34d399;border-color:rgba(52,211,153,0.4)' : 'background:rgba(248,113,113,0.16);color:#f87171;border-color:rgba(248,113,113,0.4)')}">
+                  ${isDone ? (ev.outcomeLabel || 'CONCLUÍDA ✓') : ('PRIORIDADE ' + (ev.priority || 'ALTA') + ' • ABERTA')}
+                </span>
+              </div>
+              <p style="margin:0.5rem 0; color:#e2e8f0; font-size:0.9rem; line-height:1.45;">${ev.description || ''}</p>
+              <div class="pop-box">
+                <strong style="color:var(--accent);">Instrução POP Situator:</strong> ${ev.recommendedAction || 'Abordagem preventiva de atendimento cordial ao cliente.'}<br/>
+                <span style="font-size:0.75rem; color:var(--muted);">Automação D-Guard VMS: ${ev.dguardAction || 'Bookmark CGI registrado na linha do tempo da câmera.'}</span>
+              </div>
+              <div class="meta">
+                Conta: <strong>${ev.account || 'Mercado Piloto 01'}</strong> • Clipe: <code>${ev.videoFile || 'camera_stream.mp4'}</code> • Horário: ${ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString('pt-BR') : 'Agora'}
+              </div>
+              <div class="actions">
+                ${isDone ? `<button type="button" class="btn" onclick="reopenEvent('${ev.id}')">↺ Reabrir Ocorrência</button>` : `
+                  <button type="button" class="btn btn-emerald" onclick="ackEvent('${ev.id}', 'RECUPERADO', 120)">✓ Mercadoria Recuperada (+R$ 120)</button>
+                  <button type="button" class="btn btn-primary" onclick="ackEvent('${ev.id}', 'ATENDIMENTO', 0)">✓ POP Atendimento Preventivo</button>
+                  <button type="button" class="btn btn-amber" onclick="ackEvent('${ev.id}', 'FALSO_ALARME', 0)">✕ Descartar (Falso Alarme)</button>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function ackEvent(id, outcome, brl) {
+      const state = loadCloudState();
+      const item = state.events.find(e => e.id === id);
+      if (item && item.status !== 'CONCLUIDA') {
+        item.status = 'CONCLUIDA';
+        item.outcome = outcome;
+        item.outcomeLabel = outcome === 'RECUPERADO'
+          ? `Recuperado (R$ ${brl}) ✓`
+          : (outcome === 'FALSO_ALARME' ? 'Falso Alarme Descartado' : 'POP Atendimento Preventivo ✓');
+        item.recoveredBrl = brl;
+        if (outcome === 'RECUPERADO') {
+          state.stats.recoveredBrl = (state.stats.recoveredBrl || 0) + brl;
+        }
+        saveCloudState(state);
+        renderState(state);
+      }
+      if (backendSituatorUrl !== null) {
+        await fetch(`${backendSituatorUrl}/events/${id}/ack?status=CONCLUIDA&outcome=${outcome}&recovered_brl=${brl}`, { method: 'POST' }).catch(() => {});
+      }
+    }
+
+    function reopenEvent(id) {
+      const state = loadCloudState();
+      const item = state.events.find(e => e.id === id);
+      if (item && item.status === 'CONCLUIDA') {
+        if (item.outcome === 'RECUPERADO' && item.recoveredBrl) {
+          state.stats.recoveredBrl = Math.max(0, (state.stats.recoveredBrl || 0) - item.recoveredBrl);
+        }
+        item.status = 'ABERTA';
+        item.outcome = '';
+        item.outcomeLabel = '';
+        item.recoveredBrl = 0;
+        saveCloudState(state);
+        renderState(state);
+      }
+    }
+
+    document.getElementById('btn-seed').addEventListener('click', () => {
+      const state = loadCloudState();
+      const isCasaco = (state.events.length % 2 === 0);
+      state.events.unshift({
+        id: 'sit-sim-' + Math.random().toString(36).slice(2, 7),
+        status: 'ABERTA',
+        outcome: '',
+        outcomeLabel: '',
+        recoveredBrl: 0,
+        eventCode: 'AI_SHOPLIFTING_SUSPECT',
+        priority: 'ALTA',
+        account: 'Mercado Piloto 01',
+        zone: isCasaco ? 'Corredor 03 - Bebidas & Perfumaria' : 'Corredor 02 - Eletrônicos',
+        videoFile: isCasaco ? 'furto_real_01_casaco.mp4' : 'furto_real_02_camisa.mp4',
+        annotatedVideoUrl: isCasaco ? 'samples/furto_real_01_casaco_annotated.webm' : 'samples/furto_real_02_camisa_annotated.webm',
+        localEvidenceUrl: isCasaco ? 'samples/evidence_furto_real_01_casaco.jpg' : 'samples/evidence_furto_real_02_camisa.jpg',
+        confidence: isCasaco ? 0.94 : 0.91,
+        description: isCasaco
+          ? 'Alerta confirmado (Pose + VLM): ocultação de produto sob o casaco após 4.5s de permanência na gôndola.'
+          : 'Alerta confirmado (Pose + VLM): ocultação rápida sob a camisa na área de balcão.',
+        recommendedAction: 'POP-01: Abordagem preventiva de atendimento cordial ao cliente ("Posso ajudar?").',
+        dguardAction: 'Bookmark CGI enviado ao D-Guard + Pop-up Situator',
+        timestamp: new Date().toISOString()
+      });
+      state.stats.realTheft = (state.stats.realTheft || 0) + 1;
+      saveCloudState(state);
+      renderState(state);
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_STATE));
+      const fresh = loadCloudState();
+      saveCloudState(fresh);
+      renderState(fresh);
+    });
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY) {
+        renderState(loadCloudState());
+      }
+    });
+    if (bc) {
+      bc.addEventListener('message', () => renderState(loadCloudState()));
+    }
+
+    (async () => {
+      await detectLocalBackend();
+      renderState(loadCloudState());
+    })();
+  </script>
+</body>
+</html>

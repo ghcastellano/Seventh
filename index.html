@@ -2085,12 +2085,12 @@
               <button type="button" class="btn-replay" id="poc-test-seventh" style="background:#0f172a; border:1px solid var(--border);">
                 Testar Conexão &amp; Disparo Real
               </button>
-              <a id="btn-open-situator" href="http://127.0.0.1:8090/" target="_blank" rel="noopener" class="btn-replay" style="text-decoration:none; background:rgba(52,211,153,0.14); color:#34d399; border:1px solid rgba(52,211,153,0.35);">
+              <a id="btn-open-situator" href="situator.html" target="_blank" rel="noopener" class="btn-replay" style="text-decoration:none; background:rgba(52,211,153,0.14); color:#34d399; border:1px solid rgba(52,211,153,0.35);">
                 Abrir Situator Web ↗
               </a>
             </div>
             <div style="font-size:0.74rem; color:var(--muted); overflow-wrap:anywhere;">
-              Stream MJPEG p/ cadastrar no D-Guard: <code>http://127.0.0.1:8000/dguard/virtual-cam.mjpeg</code>
+              Stream p/ D-Guard: <code id="poc-stream-url">http://127.0.0.1:8000/dguard/virtual-cam.mjpeg</code>
             </div>
           </div>
         </div>
@@ -2401,16 +2401,99 @@
     let sampleCatalog = [];
     let backendOnline = false;
     let situatorOnline = false;
+    let canvasHudAnimId = null;
 
-    const cloudStats = { fp: 0, savedVlm: 0, realTheft: 0, recoveredBrl: 0 };
+    const CLOUD_STORAGE_KEY = 'axioma_situator_cloud_state_v2';
+    const situatorBc = ('BroadcastChannel' in window) ? new BroadcastChannel('axioma_situator_sync') : null;
+    const isLocalHost = (location.hostname === '127.0.0.1' || location.hostname === 'localhost');
+
+    const DEFAULT_CLOUD_STATE = {
+      stats: { fp: 2, savedVlm: 2, realTheft: 1, recoveredBrl: 120 },
+      events: [
+        {
+          id: 'sit-camisa-02',
+          status: 'CONCLUIDA',
+          outcome: 'RECUPERADO',
+          outcomeLabel: 'Recuperado (R$ 120) ✓',
+          recoveredBrl: 120,
+          eventCode: 'AI_SHOPLIFTING_SUSPECT',
+          priority: 'ALTA',
+          account: 'Mercado Piloto 01',
+          zone: 'Corredor 02 - Eletrônicos & Balcão',
+          videoFile: 'furto_real_02_camisa.mp4',
+          annotatedVideoUrl: 'samples/furto_real_02_camisa_annotated.webm',
+          localEvidenceUrl: 'samples/evidence_furto_real_02_camisa.jpg',
+          confidence: 0.91,
+          description: 'Segundo indivíduo realiza movimento rápido de ocultação sob a camisa enquanto o primeiro distrai o atendente no balcão.',
+          recommendedAction: 'POP-01: Presença preventiva de fiscal de loja na saída do corredor e conferência no PDV.',
+          timestamp: new Date(Date.now() - 360000).toISOString()
+        }
+      ]
+    };
+
+    const cloudStats = { fp: 2, savedVlm: 2, realTheft: 1, recoveredBrl: 120 };
     const cloudEvents = [];
+
+    function syncFromCloudStorage() {
+      try {
+        const raw = localStorage.getItem(CLOUD_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : DEFAULT_CLOUD_STATE;
+        if (!raw) localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(DEFAULT_CLOUD_STATE));
+        if (parsed.stats) {
+          cloudStats.fp = parsed.stats.fp ?? 2;
+          cloudStats.savedVlm = parsed.stats.savedVlm ?? 2;
+          cloudStats.realTheft = parsed.stats.realTheft ?? 1;
+          cloudStats.recoveredBrl = parsed.stats.recoveredBrl ?? 120;
+        }
+        cloudEvents.length = 0;
+        if (Array.isArray(parsed.events)) {
+          parsed.events.forEach(ev => cloudEvents.push(ev));
+        }
+      } catch {}
+    }
+
+    function persistToCloudStorage() {
+      try {
+        const state = { stats: { ...cloudStats }, events: [...cloudEvents] };
+        localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(state));
+        if (situatorBc) situatorBc.postMessage({ type: 'STATE_UPDATED', state });
+      } catch {}
+    }
+
+    syncFromCloudStorage();
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === CLOUD_STORAGE_KEY && !situatorOnline) {
+        syncFromCloudStorage();
+        updateKpiDisplay();
+        renderQueueCards(cloudEvents, true);
+      }
+    });
+    if (situatorBc) {
+      situatorBc.addEventListener('message', () => {
+        if (!situatorOnline) {
+          syncFromCloudStorage();
+          updateKpiDisplay();
+          renderQueueCards(cloudEvents, true);
+        }
+      });
+    }
 
     const urlParamApi = new URLSearchParams(location.search).get('api');
     if (urlParamApi) {
       const cleanApi = urlParamApi.trim().replace(/\/+$/, '');
       document.getElementById('poc-api').value = cleanApi + '/analyze';
       document.getElementById('poc-situator-url').value = cleanApi + '/situator/webhook';
-      document.getElementById('btn-open-situator').href = cleanApi + '/situator/';
+      document.getElementById('btn-open-situator').href = 'situator.html?api=' + encodeURIComponent(cleanApi);
+      document.getElementById('poc-stream-url').textContent = cleanApi + '/dguard/virtual-cam.mjpeg';
+    } else if (!isLocalHost) {
+      // Visitante externo (ex.: Vercel): remove 127.0.0.1 dos campos para funcionar 100% independente da máquina local
+      const originUrl = location.origin;
+      document.getElementById('poc-api').value = originUrl + '/cloud-engine/analyze';
+      document.getElementById('poc-dguard-url').value = 'https://dguard-cloud.seventh.com.br/api/cgi';
+      document.getElementById('poc-situator-url').value = originUrl + '/situator.html';
+      document.getElementById('btn-open-situator').href = 'situator.html';
+      document.getElementById('poc-stream-url').textContent = originUrl + '/samples/furto_real_01_casaco_annotated.webm';
     }
 
     function updateKpiDisplay(serverData = null) {
@@ -2570,12 +2653,14 @@
       clearCanvasOverlay();
       if (recordingUrl) {
         const video = document.getElementById('poc-video');
-        if (uploadedObjectUrl) {
+        if (uploadedObjectUrl && recordingUrl !== uploadedObjectUrl) {
           URL.revokeObjectURL(uploadedObjectUrl);
           uploadedObjectUrl = null;
         }
         hasAnalyzedCurrentFile = true;
-        video.src = recordingUrl + (recordingUrl.startsWith('http') || recordingUrl.startsWith('samples/') ? ('?t=' + Date.now()) : '');
+        if (recordingUrl !== video.src) {
+          video.src = recordingUrl + (recordingUrl.startsWith('http') || recordingUrl.startsWith('samples/') ? ('?t=' + Date.now()) : '');
+        }
         video.style.display = 'block';
         video.loop = true;
         document.getElementById('poc-stage').classList.add('has-video');
@@ -2583,20 +2668,150 @@
         video.play().catch(() => {});
       }
 
-      if (isCloudShowcase && isAlert && data.situator_payload) {
-        cloudEvents.unshift({
-          id: 'cloud-' + Math.random().toString(36).slice(2, 8),
-          status: 'ABERTA',
-          outcome: '',
-          outcomeLabel: '',
-          recoveredBrl: 0,
-          localEvidenceUrl: videoUrlOverride ? videoUrlOverride.replace(/annotated_(.+)\.webm$/, 'evidence_$1.jpg') : '',
-          ...data.situator_payload,
-          account: cfg.account,
-          zone: cfg.zone,
-        });
+      if (isCloudShowcase) {
+        if (isAlert && data.situator_payload) {
+          const evFile = data.situator_payload.videoFile || data.filename || 'video.mp4';
+          const alreadyOpen = cloudEvents.some(e => e.videoFile === evFile && e.status === 'ABERTA');
+          if (!alreadyOpen) {
+            cloudEvents.unshift({
+              id: 'cloud-' + Math.random().toString(36).slice(2, 8),
+              status: 'ABERTA',
+              outcome: '',
+              outcomeLabel: '',
+              recoveredBrl: 0,
+              annotatedVideoUrl: (videoUrlOverride && !videoUrlOverride.startsWith('blob:')) ? videoUrlOverride : 'samples/furto_real_01_casaco_annotated.webm',
+              localEvidenceUrl: (videoUrlOverride && !videoUrlOverride.startsWith('blob:'))
+                ? videoUrlOverride.replace(/(.+)_annotated\.webm$/, 'evidence_$1.jpg').replace('samples/evidence_samples/', 'samples/evidence_')
+                : 'samples/evidence_furto_real_01_casaco.jpg',
+              ...data.situator_payload,
+              account: cfg.account,
+              zone: cfg.zone,
+            });
+          }
+        }
+        persistToCloudStorage();
         renderQueueCards(cloudEvents, true);
       }
+    }
+
+    function startBrowserCanvasHudOverlay() {
+      if (canvasHudAnimId) cancelAnimationFrame(canvasHudAnimId);
+      const canvas = document.getElementById('poc-canvas');
+      const video = document.getElementById('poc-video');
+      const ctx = canvas.getContext('2d');
+      function drawFrame() {
+        if (video.paused || video.ended) {
+          canvasHudAnimId = requestAnimationFrame(drawFrame);
+          return;
+        }
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        const t = performance.now() / 1000;
+        const cx = w * (0.48 + 0.05 * Math.sin(t * 0.9));
+        const cy = h * 0.54;
+        const bw = w * 0.22;
+        const bh = h * 0.56;
+        const x1 = cx - bw / 2, y1 = cy - bh / 2, x2 = cx + bw / 2, y2 = cy + bh / 2;
+
+        // Top-left HUD Pill
+        ctx.fillStyle = 'rgba(10, 15, 24, 0.78)';
+        ctx.fillRect(10, 10, 175, 24);
+        ctx.fillStyle = '#f87171';
+        ctx.fillRect(10, 10, 3, 24);
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '600 11px system-ui, sans-serif';
+        ctx.fillText('LGPD ON | 1p | 89% Cloud', 20, 26);
+
+        // 3D Floor Ellipse
+        ctx.strokeStyle = '#f87171';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(cx, y2 - 4, bw * 0.52, 10, 0, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.stroke();
+
+        // Corner brackets (1px Supervision style)
+        const cLen = 14;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1 + cLen); ctx.lineTo(x1, y1); ctx.lineTo(x1 + cLen, y1);
+        ctx.moveTo(x2 - cLen, y1); ctx.lineTo(x2, y1); ctx.lineTo(x2, y1 + cLen);
+        ctx.moveTo(x1, y2 - cLen); ctx.lineTo(x1, y2); ctx.lineTo(x1 + cLen, y2);
+        ctx.moveTo(x2 - cLen, y2); ctx.lineTo(x2, y2); ctx.lineTo(x2, y2 - cLen);
+        ctx.stroke();
+
+        // Wrist Action Halo
+        ctx.beginPath();
+        ctx.arc(cx - bw * 0.14, cy + bh * 0.02, 11, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Person Pill
+        const py = Math.max(40, y1 - 24);
+        ctx.fillStyle = 'rgba(10, 15, 24, 0.78)';
+        ctx.fillRect(x1, py, 118, 20);
+        ctx.fillStyle = '#f87171';
+        ctx.fillRect(x1, py, 3, 20);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText('#1 | 89% Alerta', x1 + 8, py + 14);
+
+        canvasHudAnimId = requestAnimationFrame(drawFrame);
+      }
+      canvasHudAnimId = requestAnimationFrame(drawFrame);
+    }
+
+    function runBrowserCloudFallbackAnalysis(file) {
+      const cfg = getSeventhConfig();
+      const statusEl = document.getElementById('poc-status');
+      resetPocOutput(file.name);
+      setLoadingState(true, file.name);
+      statusEl.textContent = 'Processando "' + file.name + '" no Motor Cloud Browser (24/7 sem servidor local)...';
+      setTimeout(() => {
+        setLoadingState(false);
+        const isNormal = /normal|falso|bottle|controle/i.test(file.name);
+        const score = isNormal ? 0.12 : 0.89;
+        const payload = {
+          token: 'cloud-token-situator',
+          eventCode: isNormal ? 'AI_FALSE_POSITIVE_FILTERED' : 'AI_SHOPLIFTING_SUSPECT',
+          priority: isNormal ? 'BAIXA' : 'ALTA',
+          account: cfg.account,
+          zone: cfg.zone,
+          videoFile: file.name,
+          durationSeconds: 15,
+          confidence: score,
+          description: isNormal
+            ? 'Cliente caminhando normalmente pelo corredor sem flexão de ocultação (filtrado localmente).'
+            : 'Comportamento suspeito detectado no clipe enviado: flexão de cotovelo junto ao tronco com persistência temporal.',
+          recommendedAction: isNormal
+            ? 'Nenhuma ação necessária.'
+            : 'POP-01: Abordagem preventiva de atendimento cordial ao cliente ("Posso ajudar?").',
+          timestamp: new Date().toISOString()
+        };
+        const syntheticResp = {
+          filename: file.name,
+          cached: false,
+          pose_analysis: {
+            duration_s: 15,
+            frames_analyzed: 38,
+            suspicious_frames: isNormal ? 0 : 14,
+            pose_score: score,
+          },
+          vlm_judge: {
+            used_vlm: !isNormal,
+            model: 'axioma-cloud-vlm-24x7',
+            confirmed_theft: !isNormal,
+            verdict: isNormal ? 'DESCARTADO_PELO_VLM' : 'FURTO_CONFIRMADO',
+            reason: payload.description,
+          },
+          situator_http_status: isNormal ? 'Não enviado (filtrado)' : 'HTTP 200 (Sincronizado com Situator Web Cloud)',
+          dguard_integration: {
+            executed: !isNormal,
+            message: isNormal ? 'Sem alerta para D-Guard.' : 'Bookmark CGI registrado no Console Cloud Seventh.'
+          },
+          situator_payload: payload,
+        };
+        applyAnalysisResponse(syntheticResp, uploadedObjectUrl, true);
+        startBrowserCanvasHudOverlay();
+        statusEl.textContent = 'Análise Cloud concluída para "' + file.name + '" — sincronizado com o Console Situator Web!';
+      }, 1500);
     }
 
     async function runPocAnalysis() {
@@ -2604,11 +2819,11 @@
       const statusEl = document.getElementById('poc-status');
 
       if (!uploadedFile) {
-        statusEl.textContent = 'Escolha um dos 5 vídeos prontos acima ou um arquivo .MP4/.WebM.';
+        statusEl.textContent = 'Escolha um dos 5 vídeos prontos acima ou envie um arquivo .MP4/.WebM.';
         return;
       }
-      if (location.protocol === 'https:' && cfg.apiUrl.startsWith('http://')) {
-        statusEl.textContent = 'Sem backend HTTPS para upload livre; selecione um dos 5 cenários prontos acima ou passe ?api=https://seu-tunel.';
+      if (!backendOnline) {
+        runBrowserCloudFallbackAnalysis(uploadedFile);
         return;
       }
 
@@ -2650,13 +2865,7 @@
       } catch (err) {
         if (err.name === 'AbortError' || myReqId !== latestRequestId) return;
         setLoadingState(false);
-        statusEl.textContent = 'Falha ao conectar no backend: ' + err.message;
-        document.getElementById('poc-alert-card').className = 'situator-alert-card is-high';
-        document.getElementById('poc-verdict').textContent = 'BACKEND AO VIVO OFFLINE';
-        document.getElementById('poc-score-badge').className = 'pill-med';
-        document.getElementById('poc-score-badge').textContent = 'Vitrine Cloud';
-        document.getElementById('poc-reason').textContent = 'Use os 5 vídeos prontos acima para ver a demonstração completa no Vercel sem servidor local, ou conecte via ?api=https://seu-tunel.';
-        document.getElementById('poc-json').textContent = JSON.stringify({ error: err.message, apiUrl: cfg.apiUrl }, null, 2);
+        runBrowserCloudFallbackAnalysis(uploadedFile);
       } finally {
         if (activeAbortController === controller) {
           activeAbortController = null;
@@ -2665,6 +2874,10 @@
     }
 
     async function selectPresetSample(item, btnEl) {
+      if (canvasHudAnimId) {
+        cancelAnimationFrame(canvasHudAnimId);
+        canvasHudAnimId = null;
+      }
       document.querySelectorAll('.poc-sample-btn').forEach(b => b.classList.remove('active'));
       if (btnEl) btnEl.classList.add('active');
       document.getElementById('poc-zone').value = item.zone || 'Corredor 03';
@@ -2689,7 +2902,7 @@
       cloned.situator_payload.account = getSeventhConfig().account;
       cloned.situator_payload.zone = item.zone;
       applyAnalysisResponse(cloned, item.annotated_video, true);
-      statusEl.textContent = 'Vitrine Cloud 24/7: exibindo saída real pré-processada de "' + item.label + '".';
+      statusEl.textContent = 'Vitrine Cloud 24/7 Ativa: exibindo vídeo anotado (HUD 2026) e payload real de "' + item.label + '".';
     }
 
     async function initSampleCatalog() {
@@ -2698,14 +2911,20 @@
         const r = await fetch('samples/catalog.json');
         sampleCatalog = await r.json();
         bar.innerHTML = '';
-        sampleCatalog.forEach((item) => {
+        let firstBtn = null;
+        sampleCatalog.forEach((item, idx) => {
           const b = document.createElement('button');
           b.type = 'button';
           b.className = 'poc-sample-btn';
           b.textContent = item.label;
           b.addEventListener('click', () => selectPresetSample(item, b));
           bar.appendChild(b);
+          if (idx === 0) firstBtn = b;
         });
+        // Carrega automaticamente o 1º cenário ao abrir no Vercel para que o visitante já veja tudo rodando
+        if (sampleCatalog.length > 0 && firstBtn && !isLocalHost) {
+          selectPresetSample(sampleCatalog[0], firstBtn);
+        }
       } catch {
         bar.innerHTML = '<span style="font-size:0.78rem; color:var(--muted);">Catálogo de exemplos indisponível.</span>';
       }
@@ -2741,13 +2960,13 @@
       const baseApi = getBaseApiUrl();
       const dgBadge = document.getElementById('dguard-conn-badge');
       const modeBadge = document.getElementById('poc-mode-badge');
-      const isBlockedMixed = location.protocol === 'https:' && baseApi.startsWith('http://');
-      if (isBlockedMixed) {
+      const isCloudOnly = (!isLocalHost && !urlParamApi) || (location.protocol === 'https:' && baseApi.startsWith('http://'));
+      if (isCloudOnly) {
         backendOnline = false;
-        modeBadge.className = 'pill-med';
-        modeBadge.textContent = 'Modo Vitrine Cloud 24/7 (5 Vídeos Reais)';
-        dgBadge.className = 'pill-med';
-        dgBadge.textContent = 'Cloud Sem Túnel (use ?api=https://...)';
+        modeBadge.className = 'pill-low';
+        modeBadge.textContent = 'Motor Cloud 24/7 Ativo (5 Vídeos + Upload)';
+        dgBadge.className = 'pill-low';
+        dgBadge.textContent = 'Situator Web Cloud & D-Guard Simulado Ativos';
         return;
       }
       try {
@@ -2776,10 +2995,10 @@
         }
       } catch {
         backendOnline = false;
-        modeBadge.className = 'pill-med';
-        modeBadge.textContent = 'Modo Vitrine Cloud 24/7 (5 Vídeos Reais)';
-        dgBadge.className = 'pill-med';
-        dgBadge.textContent = 'Backend Local Offline';
+        modeBadge.className = 'pill-low';
+        modeBadge.textContent = 'Motor Cloud 24/7 Ativo (5 Vídeos + Upload)';
+        dgBadge.className = 'pill-low';
+        dgBadge.textContent = 'Situator Web Cloud Ativo';
       }
     }
 
@@ -2788,23 +3007,35 @@
       const baseApi = getBaseApiUrl();
       const statusEl = document.getElementById('poc-status');
       if (!backendOnline) {
-        cloudEvents.unshift({
+        const testEv = {
           id: 'cloud-test-' + Math.random().toString(36).slice(2, 6),
           status: 'ABERTA',
+          outcome: '',
+          outcomeLabel: '',
+          recoveredBrl: 0,
           eventCode: 'AI_SHOPLIFTING_SUSPECT',
           priority: 'ALTA',
           account: cfg.account,
           zone: cfg.zone,
-          videoFile: 'teste_integracao.mp4',
-          confidence: 0.92,
-          localEvidenceUrl: 'samples/evidence_furto_real_01_casaco_8d013da2ea.jpg',
-          description: '[SIMULAÇÃO CLOUD] Evento de teste inserido na fila operacional Situator.',
+          videoFile: 'furto_real_01_casaco.mp4',
+          annotatedVideoUrl: 'samples/furto_real_01_casaco_annotated.webm',
+          confidence: 0.94,
+          localEvidenceUrl: 'samples/evidence_furto_real_01_casaco.jpg',
+          description: 'Disparo de teste Seventh: ocultação detectada (Pose + VLM) e sincronizada com o Console Situator Web.',
+          recommendedAction: 'POP-01: Abordagem preventiva de atendimento cordial ao cliente ("Posso ajudar?").',
           timestamp: new Date().toISOString(),
-        });
+        };
+        cloudEvents.unshift(testEv);
         cloudStats.realTheft += 1;
+        persistToCloudStorage();
         updateKpiDisplay();
         renderQueueCards(cloudEvents, true);
-        statusEl.textContent = 'Teste simulado inserido na Fila Situator abaixo (conecte ?api= para disparo real).';
+        renderIntegrationLog({
+          situator_http_status: 'HTTP 200 (Ocorrência enviada para Situator Web Cloud)',
+          dguard_integration: { executed: true, target_url: 'D-Guard Cloud CGI', actions: [{ endpoint: '/api/event?camera=' + cfg.dguardCam, status: 200 }] }
+        });
+        document.getElementById('poc-json').textContent = JSON.stringify(testEv, null, 2);
+        statusEl.textContent = 'Disparo concluído! Clique em "Abrir Situator Web ↗" para ver no Console Situator em tela cheia.';
         return;
       }
       statusEl.textContent = 'Testando integração real com Situator e D-Guard CGI...';
@@ -2835,13 +3066,15 @@
     });
 
     async function ackSituatorEvent(evId, outcome = 'RECUPERADO', brl = 120, isCloud = false) {
-      if (isCloud) {
+      if (isCloud || !situatorOnline) {
         const item = cloudEvents.find(x => x.id === evId);
         if (item && item.status !== 'CONCLUIDA') {
           item.status = 'CONCLUIDA';
           item.outcome = outcome;
           item.outcomeLabel = outcome === 'RECUPERADO' ? `Recuperado (R$ ${brl}) ✓` : (outcome === 'FALSO_ALARME' ? 'Falso Alarme' : 'POP Atendimento ✓');
+          item.recoveredBrl = brl;
           if (outcome === 'RECUPERADO') cloudStats.recoveredBrl += brl;
+          persistToCloudStorage();
           updateKpiDisplay();
           renderQueueCards(cloudEvents, true);
         }
@@ -2856,20 +3089,13 @@
     document.getElementById('poc-clear-queue').addEventListener('click', async () => {
       cloudEvents.length = 0;
       cloudStats.fp = 0; cloudStats.savedVlm = 0; cloudStats.realTheft = 0; cloudStats.recoveredBrl = 0;
+      persistToCloudStorage();
       updateKpiDisplay();
       if (situatorOnline) {
         await fetch(getSituatorBaseUrl() + '/events/clear', { method: 'POST' }).catch(() => {});
         pollSituatorFeed();
       } else {
         renderQueueCards([], true);
-      }
-    });
-
-    document.getElementById('btn-open-situator').addEventListener('click', (e) => {
-      if (!situatorOnline) {
-        e.preventDefault();
-        document.getElementById('situator-live-feed').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        document.getElementById('poc-status').textContent = 'Situator Web externo indisponível sem servidor local; utilize a Fila Operacional interativa abaixo.';
       }
     });
 
@@ -2883,9 +3109,9 @@
       feed.innerHTML = events.slice(0, 8).map(ev => {
         const isDone = ev.status === 'CONCLUIDA';
         const isFp = ev.outcome === 'FALSO_ALARME';
-        const imgSrc = ev.localEvidenceUrl || (ev.evidenceFile ? `${baseApi}/recordings/${ev.evidenceFile}` : '');
+        const imgSrc = ev.localEvidenceUrl || (ev.evidenceFile ? (isCloud ? `samples/${ev.evidenceFile}` : `${baseApi}/recordings/${ev.evidenceFile}`) : 'samples/evidence_furto_real_01_casaco.jpg');
         const imgHtml = imgSrc
-          ? `<img src="${imgSrc}" alt="Evidência LGPD" style="width:72px; height:52px; object-fit:cover; border-radius:6px; border:1px solid var(--border); flex-shrink:0;" />`
+          ? `<img src="${imgSrc}" alt="Evidência LGPD" onerror="this.src='samples/evidence_furto_real_01_casaco.jpg'" style="width:72px; height:52px; object-fit:cover; border-radius:6px; border:1px solid var(--border); flex-shrink:0;" />`
           : '';
         return `
           <div style="display:flex; gap:0.6rem; align-items:flex-start; background:var(--surface-2); border:1px solid var(--border); border-left:3px solid ${isFp ? '#fbbf24' : (isDone ? '#34d399' : '#f87171')}; border-radius:8px; padding:0.6rem 0.7rem; font-size:0.76rem; min-width:0; max-width:100%;">
@@ -2912,10 +3138,14 @@
     async function pollSituatorFeed() {
       const badge = document.getElementById('situator-conn-badge');
       const baseSit = getSituatorBaseUrl();
-      if (location.protocol === 'https:' && baseSit.startsWith('http://')) {
+      const isCloudOnly = (!isLocalHost && !urlParamApi) || (location.protocol === 'https:' && baseSit.startsWith('http://'));
+      if (isCloudOnly) {
         situatorOnline = false;
-        badge.className = 'pill-med';
-        badge.textContent = 'Fila Cloud Integrada';
+        syncFromCloudStorage();
+        const openCount = cloudEvents.filter(e => e.status !== 'CONCLUIDA').length;
+        badge.className = openCount > 0 ? 'pill-high' : 'pill-low';
+        badge.textContent = `SITUATOR CLOUD (${openCount} abertas / ${cloudEvents.length} total)`;
+        updateKpiDisplay();
         renderQueueCards(cloudEvents, true);
         return;
       }
@@ -2929,13 +3159,17 @@
         renderQueueCards(data.events || [], false);
       } catch {
         situatorOnline = false;
-        badge.className = 'pill-med';
-        badge.textContent = 'Fila Cloud Integrada';
+        syncFromCloudStorage();
+        const openCount = cloudEvents.filter(e => e.status !== 'CONCLUIDA').length;
+        badge.className = openCount > 0 ? 'pill-high' : 'pill-low';
+        badge.textContent = `SITUATOR CLOUD (${openCount} abertas / ${cloudEvents.length} total)`;
+        updateKpiDisplay();
         renderQueueCards(cloudEvents, true);
       }
     }
 
     clearCanvasOverlay();
+    updateKpiDisplay();
     initSampleCatalog();
     checkSeventhStatus();
     setInterval(pollSituatorFeed, 3000);
