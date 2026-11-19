@@ -374,6 +374,22 @@
       </article>
     </div>
 
+    <div class="grid-cards" style="margin-top:1rem;">
+      <article class="card">
+        <span class="sub">Comparativo Visual • Gravadores</span>
+        <h3>DVR vs. HVR vs. NVR (Qual imagem gera e por que escolher)</h3>
+        <img src="./assets/dvr-hvr-nvr.jpg" alt="Comparativo DVR, HVR e NVR" style="width:100%; border-radius:8px; border:1px solid var(--border); display:block;" />
+        <p><strong>DVR:</strong> gera imagem HD/Full HD simples via cabo coaxial (ideal para aproveitar câmeras antigas). <strong>HVR:</strong> mistura legado analógico + câmeras IP. <strong>NVR:</strong> 100% digital via cabo de rede, gera imagem Full HD/4K mais nítida + áudio + metadados — <strong>melhor escolha para rodar IA</strong>.</p>
+      </article>
+
+      <article class="card">
+        <span class="sub">Exemplo Visual • Leitura de Placas</span>
+        <h3>LPR na Prática (D-Guard + Situator)</h3>
+        <img src="./assets/lpr-example.jpg" alt="Exemplo visual de LPR no D-Guard e Situator" style="width:100%; border-radius:8px; border:1px solid var(--border); display:block;" />
+        <p>No D-Guard, você desenha a <strong>Área Azul</strong> (onde o carro passa) e a <strong>Área Verde</strong> (tamanho médio da placa). O sistema lê a placa Mercosul, consulta Lista Branca/Negra ou <em>Oncar Brasil</em> e envia para o <strong>Situator</strong> abrir o portão ou alertar o operador.</p>
+      </article>
+    </div>
+
     <!-- 3. DICTIONARY OF ACRONYMS -->
     <div class="sec-head" id="dicionario">
       <h2>3. Dicionário de Siglas e Termos Técnicos</h2>
@@ -401,7 +417,10 @@
       { t: "Webhook / HTTP GET", full: "Gatilho Automático via Web", cat: "Integração", desc: "Um aviso automático enviado de um sistema para outro pela rede quando algo acontece (ex.: IA detecta furto → envia JSON ao Situator)." },
       { t: "JSON", full: "JavaScript Object Notation", cat: "Integração", desc: "Formato de texto organizado em chave/valor que os sistemas usam para trocar mensagens (ex.: {\"evento\": \"furto\", \"corredor\": 3})." },
       { t: "FTP", full: "File Transfer Protocol", cat: "Integração", desc: "Protocolo antigo e simples para enviar arquivos. O D-Guard pode salvar fotos (snapshots) em uma pasta FTP a cada X segundos." },
-      { t: "LPR / ANPR", full: "License Plate Recognition", cat: "Analítico", desc: "Leitura automática de placas de carros pela câmera (no D-Guard usa a licença DGPLPR)." },
+      { t: "DVR", full: "Digital Video Recorder (Gravador Analógico)", cat: "Equipamento", desc: "Caixa gravadora ligada por cabo coaxial a câmeras analógicas. Gera imagem HD/Full HD simples. Escolha quando o mercado já tem câmeras antigas e quer gastar pouco (licença DGPDVR / DGCDVR)." },
+      { t: "HVR", full: "Hybrid Video Recorder (Gravador Híbrido)", cat: "Equipamento", desc: "Gravador que aceita tanto câmeras analógicas antigas (coaxial) quanto câmeras IP modernas (rede). Escolha para migrar uma loja aos poucos sem jogar câmeras fora." },
+      { t: "NVR", full: "Network Video Recorder (Gravador IP)", cat: "Equipamento", desc: "Gravador 100% digital ligado por cabo de rede (RJ45/PoE) a câmeras IP. Gera imagem Full HD/4K muito mais nítida, com áudio e IA embarcada — escolha ideal para projetos novos e Visão Computacional (licenças DGPNVR32/64/128)." },
+      { t: "LPR / ANPR", full: "License Plate Recognition (Leitura de Placas)", cat: "Analítico", desc: "IA que lê automaticamente placas Mercosul/antigas pela câmera (licença DGPLPR ou embarcada em Hikvision/Intelbras). Gera texto da placa + foto do veículo + confiança (%) e integra com Oncar Brasil e abertura de portão no Situator." },
       { t: "PTZ / Preset / Patrulha", full: "Pan-Tilt-Zoom", cat: "Vídeo", desc: "Câmera móvel que gira e dá zoom. Preset é uma posição salva (ex.: 'Portão'); Patrulha é fazer a câmera passear entre vários presets." },
       { t: "I/O (Input / Output)", full: "Entrada e Saída Física", cat: "Automação", desc: "Input = sensor que avisa o sistema (porta aberta). Output/Relé = interruptor controlado pelo sistema (abrir portão)." },
       { t: "Wiegand (26 / 34)", full: "Protocolo de Controle de Acesso", cat: "Acesso", desc: "Padrão de fios/sinal usado por leitores de cartão e tags para enviar o código da credencial para a controladora." },
