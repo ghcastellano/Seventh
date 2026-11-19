@@ -170,11 +170,10 @@ def _build_storyboard_b64(sampled_frames: list[np.ndarray], peak_pos: int) -> tu
     if n <= 4:
         idxs = [min(i, n - 1) for i in range(4)]
     else:
-        delta = max(2, n // 9)
         raw = [
-            max(0, peak_pos - delta),
-            max(0, min(n - 1, peak_pos)),
-            min(n - 1, peak_pos + delta),
+            0,
+            max(1, min(n - 2, peak_pos)),
+            max(1, min(n - 2, peak_pos + max(2, n // 8))),
             n - 1,
         ]
         # Garante 4 índices ordenados e distintos quando possível

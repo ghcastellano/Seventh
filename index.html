@@ -99,7 +99,13 @@
       border-radius: 10px;
       border: 1px solid var(--border);
       overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
       max-width: 100%;
+    }
+    .nav-menu::-webkit-scrollbar { display: none; }
+    @media (max-width: 720px) {
+      .nav-menu { flex-wrap: wrap; justify-content: flex-start; }
     }
     .nav-item {
       border: none;
@@ -702,11 +708,11 @@
     /* Demo POC Tab */
     .poc-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1.38fr) minmax(0, 1fr);
       gap: 1.25rem;
       align-items: start;
     }
-    @media (max-width: 1020px) {
+    @media (max-width: 820px) {
       .poc-layout { grid-template-columns: minmax(0, 1fr); }
     }
     .poc-panel {
