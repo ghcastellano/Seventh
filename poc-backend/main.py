@@ -21,9 +21,9 @@ import cv2
 import httpx
 import numpy as np
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from ultralytics import YOLO
 
@@ -76,19 +76,65 @@ SKELETON_LINKS = [
 
 
 def _blur_face_lgpd(frame: np.ndarray, kpts: Any) -> None:
-    """Aplica blur Gaussiano nos keypoints faciais (0..4) para conformidade LGPD."""
+    """Aplica desfoque oval suave nos keypoints faciais (0..4) para LGPD sem quadrado duro."""
     face_pts = [pt for pt in kpts[:5] if float(pt[0]) > 0 and float(pt[1]) > 0]
     if not face_pts:
         return
     xs = [float(p[0]) for p in face_pts]
     ys = [float(p[1]) for p in face_pts]
-    pad = 24
-    x1 = max(0, int(min(xs)) - pad)
-    y1 = max(0, int(min(ys)) - pad)
-    x2 = min(frame.shape[1], int(max(xs)) + pad)
-    y2 = min(frame.shape[0], int(max(ys)) + pad)
-    if x2 > x1 and y2 > y1:
-        frame[y1:y2, x1:x2] = cv2.GaussianBlur(frame[y1:y2, x1:x2], (31, 31), 0)
+    cx = int(sum(xs) / len(xs))
+    cy = int(sum(ys) / len(ys))
+    rx = max(16, int((max(xs) - min(xs)) * 0.72) + 12)
+    ry = max(20, int(rx * 1.25))
+    h, w = frame.shape[:2]
+    x1, y1 = max(0, cx - rx - 4), max(0, cy - ry - 4)
+    x2, y2 = min(w, cx + rx + 4), min(h, cy + ry + 4)
+    if x2 <= x1 or y2 <= y1:
+        return
+    roi = frame[y1:y2, x1:x2]
+    blurred = cv2.GaussianBlur(roi, (29, 29), 0)
+    mask = np.zeros((y2 - y1, x2 - x1), dtype=np.float32)
+    cv2.ellipse(mask, (cx - x1, cy - y1), (rx, ry), 0, 0, 360, 1.0, -1)
+    mask = cv2.GaussianBlur(mask, (15, 15), 0)[..., None]
+    frame[y1:y2, x1:x2] = (blurred * mask + roi * (1.0 - mask)).astype(np.uint8)
+
+
+def _draw_corner_box(frame: np.ndarray, x1: int, y1: int, x2: int, y2: int, color: tuple[int, int, int]) -> None:
+    """Desenha cantoneiras finas e elegantes (L-corners) em vez de caixa grossa poluída."""
+    clen = max(9, min(16, (x2 - x1) // 5, (y2 - y1) // 5))
+    t = 1
+    cv2.line(frame, (x1, y1), (x1 + clen, y1), color, t, cv2.LINE_AA)
+    cv2.line(frame, (x1, y1), (x1, y1 + clen), color, t, cv2.LINE_AA)
+    cv2.line(frame, (x2, y1), (x2 - clen, y1), color, t, cv2.LINE_AA)
+    cv2.line(frame, (x2, y1), (x2, y1 + clen), color, t, cv2.LINE_AA)
+    cv2.line(frame, (x1, y2), (x1 + clen, y2), color, t, cv2.LINE_AA)
+    cv2.line(frame, (x1, y2), (x1, y2 - clen), color, t, cv2.LINE_AA)
+    cv2.line(frame, (x2, y2), (x2 - clen, y2), color, t, cv2.LINE_AA)
+    cv2.line(frame, (x2, y2), (x2, y2 - clen), color, t, cv2.LINE_AA)
+
+
+def _draw_pill_label(
+    frame: np.ndarray,
+    text: str,
+    x: int,
+    y: int,
+    accent: tuple[int, int, int],
+    scale: float = 0.37,
+) -> None:
+    """Desenha etiqueta escura translúcida e legível, sempre contida dentro do quadro."""
+    fh, fw = frame.shape[:2]
+    font = cv2.FONT_HERSHEY_DUPLEX
+    (tw, th), _ = cv2.getTextSize(text, font, scale, 1)
+    px, py = 6, 4
+    bw, bh = tw + px * 2, th + py * 2
+    bx1 = max(6, min(fw - bw - 6, x))
+    by1 = max(6, min(fh - bh - 6, y))
+    bx2, by2 = bx1 + bw, by1 + bh
+    roi = frame[by1:by2, bx1:bx2]
+    dark = np.full_like(roi, (24, 15, 10))
+    cv2.addWeighted(dark, 0.72, roi, 0.28, 0, dst=roi)
+    cv2.line(frame, (bx1, by1), (bx1, by2 - 1), accent, 2)
+    cv2.putText(frame, text, (bx1 + px, by2 - py - 1), font, scale, (245, 248, 252), 1, cv2.LINE_AA)
 
 
 def _angle_deg(a: Any, b: Any, c: Any) -> float:
@@ -281,6 +327,8 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
                             _blur_face_lgpd(frame, kpts)
             clean_copy = cv2.resize(frame, (480, max(2, int(480 * height / width))))
 
+            # Camada de sobreposição sutil e translúcida ("Visão Humana Elegante")
+            skel_overlay = frame.copy()
             for res in results:
                 if res.keypoints is None or res.keypoints.xy is None:
                     continue
@@ -293,42 +341,43 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
                         continue
                     person_count += 1
                     confs_i = kpt_confs[idx] if (kpt_confs is not None and idx < len(kpt_confs)) else None
+                    p_score, p_reason = _score_person_pose(kpts, confs_i)
+                    frame_score = max(frame_score, p_score)
+                    if p_score >= best_score:
+                        best_pose_reason = p_reason
+
+                    is_susp = p_score >= 0.65
+                    skel_color = (133, 113, 251) if is_susp else (212, 234, 94)
+                    box_color = (113, 113, 248) if is_susp else (248, 189, 56)
 
                     for a, b in SKELETON_LINKS:
                         if a < len(kpts) and b < len(kpts):
                             xa, ya = int(kpts[a][0]), int(kpts[a][1])
                             xb, yb = int(kpts[b][0]), int(kpts[b][1])
                             if xa > 0 and ya > 0 and xb > 0 and yb > 0:
-                                cv2.line(frame, (xa, ya), (xb, yb), (52, 211, 153), 2)
-
-                    p_score, p_reason = _score_person_pose(kpts, confs_i)
-                    frame_score = max(frame_score, p_score)
-                    if p_score >= best_score:
-                        best_pose_reason = p_reason
+                                cv2.line(skel_overlay, (xa, ya), (xb, yb), skel_color, 1, cv2.LINE_AA)
+                    for j_idx in (7, 8, 9, 10):
+                        jx, jy = int(kpts[j_idx][0]), int(kpts[j_idx][1])
+                        if jx > 0 and jy > 0:
+                            cv2.circle(skel_overlay, (jx, jy), 2, skel_color, -1, cv2.LINE_AA)
 
                     if boxes is not None and idx < len(boxes):
                         x1, y1, x2, y2 = [int(v) for v in boxes[idx]]
                         tid = int(track_ids[idx]) if (track_ids is not None and idx < len(track_ids)) else (idx + 1)
-                        b_color = (0, 0, 255) if p_score >= 0.65 else (56, 189, 248)
-                        label = f"ID #{tid} | {int(p_score * 100)}% {'SUSPEITA' if p_score >= 0.65 else 'NORMAL'}"
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), b_color, 2)
-                        cv2.putText(frame, label, (x1, max(18, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.52, b_color, 2)
+                        _draw_corner_box(frame, x1, y1, x2, y2, box_color)
+                        tag = f"#{tid} | {int(p_score * 100)}%{' Alerta' if is_susp else ''}"
+                        label_y = (y1 - 20) if y1 >= 34 else (y1 + 6)
+                        _draw_pill_label(frame, tag, x1, label_y, box_color)
+
+            cv2.addWeighted(skel_overlay, 0.45, frame, 0.55, 0, dst=frame)
 
             if person_count > 0:
                 people_detected_frames += 1
             if frame_score >= 0.65:
                 suspicious_frames += 1
 
-            hud_color = (0, 0, 255) if frame_score >= 0.65 else (56, 189, 248)
-            cv2.putText(
-                frame,
-                f"AXIOMA LGPD-SAFE | Pessoas: {person_count} | Score: {frame_score:.2f}",
-                (14, 28),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.62,
-                hud_color,
-                2,
-            )
+            hud_accent = (113, 113, 248) if frame_score >= 0.65 else (153, 211, 52)
+            _draw_pill_label(frame, f"LGPD ON | {person_count}p | {int(frame_score * 100)}%", 8, 8, hud_accent, scale=0.35)
             writer.write(frame)
 
             clean_lgpd_frames.append(clean_copy)
@@ -789,3 +838,25 @@ async def analyze_video(
     }
     ANALYSIS_CACHE[cache_key] = response
     return response
+
+
+@app.api_route("/situator/{subpath:path}", methods=["GET", "POST"])
+@app.api_route("/situator", methods=["GET", "POST"])
+async def proxy_situator_web(request: Request, subpath: str = "") -> Response:
+    """Proxy reverso para o Situator Web POC (8090) permitindo 1 único túnel HTTPS para tudo."""
+    target = f"http://127.0.0.1:8090/{subpath.lstrip('/')}"
+    if request.url.query:
+        target = f"{target}?{request.url.query}"
+    body = await request.body()
+    async with httpx.AsyncClient(timeout=6.0) as client:
+        upstream = await client.request(
+            request.method,
+            target,
+            content=body if body else None,
+            headers={"content-type": request.headers.get("content-type", "application/json")},
+        )
+    return Response(
+        content=upstream.content,
+        status_code=upstream.status_code,
+        media_type=upstream.headers.get("content-type", "text/html"),
+    )

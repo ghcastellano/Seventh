@@ -1,0 +1,270 @@
+[
+  {
+    "id": "furto_real_01_casaco",
+    "label": "Furto Real #1 — Ocultação no Casaco (18s)",
+    "zone": "Ilha Eletrônicos / Loja",
+    "source_mp4": "samples/furto_real_01_casaco.mp4",
+    "annotated_video": "samples/annotated_furto_real_01_casaco_8d013da2ea.webm",
+    "evidence_image": "samples/evidence_furto_real_01_casaco_8d013da2ea.jpg",
+    "response": {
+      "cached": false,
+      "filename": "furto_real_01_casaco.mp4",
+      "video_sha256": "8d013da2ea67",
+      "elapsed_ms": 44088,
+      "pose_analysis": {
+        "duration_s": 18.0,
+        "frames_analyzed": 45,
+        "people_detected_frames": 45,
+        "suspicious_frames": 24,
+        "pose_score": 0.96,
+        "pose_reason": "Cotovelo flexionado (77°) com pulso junto ao tronco/roupa (esq)",
+        "recording_path": "C:\\Users\\ghcas\\OneDrive\\Desktop\\Seventh\\poc-backend\\recordings\\annotated_furto_real_01_casaco_8d013da2ea.webm",
+        "recording_filename": "annotated_furto_real_01_casaco_8d013da2ea.webm",
+        "evidence_filename": "evidence_furto_real_01_casaco_8d013da2ea.jpg"
+      },
+      "vlm_judge": {
+        "used_vlm": true,
+        "model": "qwen/qwen3-vl-30b-a3b-instruct",
+        "confirmed_theft": true,
+        "verdict": "CONFIRMADO_VLM",
+        "reason": "Cliente pega produto da prateleira e o esconde dentro do casaco entre T2 e T3, com movimento suspeito de ocultação."
+      },
+      "situator_webhook_sent": true,
+      "situator_http_status": "HTTP 200",
+      "dguard_integration": {
+        "executed": false,
+        "reachable": false,
+        "target_url": "http://127.0.0.1:80",
+        "message": "Offline nesta máquina (abra o aplicativo D-Guard Center no Windows para ativar a API CGI na porta 80/8081).",
+        "actions": []
+      },
+      "situator_payload": {
+        "token": "demo-token-situator",
+        "eventCode": "AI_SHOPLIFTING_SUSPECT",
+        "priority": "ALTA",
+        "account": "Mercado Piloto 01",
+        "zone": "Ilha Eletrônicos / Loja",
+        "videoFile": "furto_real_01_casaco.mp4",
+        "durationSeconds": 18.0,
+        "confidence": 0.96,
+        "evidenceFile": "evidence_furto_real_01_casaco_8d013da2ea.jpg",
+        "description": "Cliente pega produto da prateleira e o esconde dentro do casaco entre T2 e T3, com movimento suspeito de ocultação.",
+        "recommendedAction": "Abordagem preventiva de atendimento ao cliente ('Posso ajudar?')",
+        "timestamp": "2026-11-19T15:55:54Z"
+      }
+    }
+  },
+  {
+    "id": "furto_real_02_camisa",
+    "label": "Interação no Balcão — Filtro VLM (20s)",
+    "zone": "Corredor 02 - Mercearia",
+    "source_mp4": "samples/furto_real_02_camisa.mp4",
+    "annotated_video": "samples/annotated_furto_real_02_camisa_76c192d64d.webm",
+    "evidence_image": "samples/evidence_furto_real_02_camisa_76c192d64d.jpg",
+    "response": {
+      "cached": false,
+      "filename": "furto_real_02_camisa.mp4",
+      "video_sha256": "76c192d64d0f",
+      "elapsed_ms": 36408,
+      "pose_analysis": {
+        "duration_s": 20.0,
+        "frames_analyzed": 50,
+        "people_detected_frames": 50,
+        "suspicious_frames": 46,
+        "pose_score": 0.96,
+        "pose_reason": "Cotovelo flexionado (94°) com pulso junto ao tronco/roupa (esq)",
+        "recording_path": "C:\\Users\\ghcas\\OneDrive\\Desktop\\Seventh\\poc-backend\\recordings\\annotated_furto_real_02_camisa_76c192d64d.webm",
+        "recording_filename": "annotated_furto_real_02_camisa_76c192d64d.webm",
+        "evidence_filename": "evidence_furto_real_02_camisa_76c192d64d.jpg"
+      },
+      "vlm_judge": {
+        "used_vlm": true,
+        "model": "google/gemini-2.5-flash-lite",
+        "confirmed_theft": false,
+        "verdict": "DESCARTADO_PELO_VLM",
+        "reason": "O indivíduo parece estar interagindo com um funcionário da loja, possivelmente para obter informações ou realizar uma compra. Não há indícios de ocultação de mercadoria."
+      },
+      "situator_webhook_sent": false,
+      "situator_http_status": "Não enviado (sem alerta real)",
+      "dguard_integration": {
+        "executed": false,
+        "reachable": false,
+        "actions": [],
+        "message": "Sem alerta real para acionar D-Guard."
+      },
+      "situator_payload": {
+        "token": "demo-token-situator",
+        "eventCode": "AI_FALSE_POSITIVE_FILTERED",
+        "priority": "BAIXA",
+        "account": "Mercado Piloto 01",
+        "zone": "Corredor 02 - Mercearia",
+        "videoFile": "furto_real_02_camisa.mp4",
+        "durationSeconds": 20.0,
+        "confidence": 0.96,
+        "evidenceFile": "evidence_furto_real_02_camisa_76c192d64d.jpg",
+        "description": "O indivíduo parece estar interagindo com um funcionário da loja, possivelmente para obter informações ou realizar uma compra. Não há indícios de ocultação de mercadoria.",
+        "recommendedAction": "Nenhuma ação necessária (descartado pela verificação de 2 estágios)",
+        "timestamp": "2026-11-19T15:56:35Z"
+      }
+    }
+  },
+  {
+    "id": "parece_furto_falso_positivo_01",
+    "label": "Parece Furto #1 — Cliente no Corredor (18s)",
+    "zone": "Corredor 01 - Snacks",
+    "source_mp4": "samples/parece_furto_falso_positivo_01.mp4",
+    "annotated_video": "samples/annotated_parece_furto_falso_positivo_01_bb0c980ef3.webm",
+    "evidence_image": "samples/evidence_parece_furto_falso_positivo_01_bb0c980ef3.jpg",
+    "response": {
+      "cached": false,
+      "filename": "parece_furto_falso_positivo_01.mp4",
+      "video_sha256": "bb0c980ef317",
+      "elapsed_ms": 48508,
+      "pose_analysis": {
+        "duration_s": 18.0,
+        "frames_analyzed": 45,
+        "people_detected_frames": 34,
+        "suspicious_frames": 3,
+        "pose_score": 0.62,
+        "pose_reason": "Cotovelo flexionado (126°) com pulso junto ao tronco/roupa (esq)",
+        "recording_path": "C:\\Users\\ghcas\\OneDrive\\Desktop\\Seventh\\poc-backend\\recordings\\annotated_parece_furto_falso_positivo_01_bb0c980ef3.webm",
+        "recording_filename": "annotated_parece_furto_falso_positivo_01_bb0c980ef3.webm",
+        "evidence_filename": "evidence_parece_furto_falso_positivo_01_bb0c980ef3.jpg"
+      },
+      "vlm_judge": {
+        "used_vlm": false,
+        "confirmed_theft": false,
+        "verdict": "DESCARTADO_POR_POSE",
+        "reason": "Sem gesto crítico sustentado (Cotovelo flexionado (126°) com pulso junto ao tronco/roupa (esq); 3 frames suspeitos). VLM não acionado (custo zero)."
+      },
+      "situator_webhook_sent": false,
+      "situator_http_status": "Não enviado (sem alerta real)",
+      "dguard_integration": {
+        "executed": false,
+        "reachable": false,
+        "actions": [],
+        "message": "Sem alerta real para acionar D-Guard."
+      },
+      "situator_payload": {
+        "token": "demo-token-situator",
+        "eventCode": "AI_FALSE_POSITIVE_FILTERED",
+        "priority": "BAIXA",
+        "account": "Mercado Piloto 01",
+        "zone": "Corredor 01 - Snacks",
+        "videoFile": "parece_furto_falso_positivo_01.mp4",
+        "durationSeconds": 18.0,
+        "confidence": 0.62,
+        "evidenceFile": "evidence_parece_furto_falso_positivo_01_bb0c980ef3.jpg",
+        "description": "Sem gesto crítico sustentado (Cotovelo flexionado (126°) com pulso junto ao tronco/roupa (esq); 3 frames suspeitos). VLM não acionado (custo zero).",
+        "recommendedAction": "Nenhuma ação necessária (descartado pela verificação de 2 estágios)",
+        "timestamp": "2026-11-19T15:57:25Z"
+      }
+    }
+  },
+  {
+    "id": "parece_furto_falso_positivo_02",
+    "label": "Parece Furto #2 — Cliente na Prateleira (19s)",
+    "zone": "Corredor 04 - Limpeza",
+    "source_mp4": "samples/parece_furto_falso_positivo_02.mp4",
+    "annotated_video": "samples/annotated_parece_furto_falso_positivo_02_fdb6eaa018.webm",
+    "evidence_image": "samples/evidence_parece_furto_falso_positivo_02_fdb6eaa018.jpg",
+    "response": {
+      "cached": false,
+      "filename": "parece_furto_falso_positivo_02.mp4",
+      "video_sha256": "fdb6eaa01819",
+      "elapsed_ms": 27745,
+      "pose_analysis": {
+        "duration_s": 19.0,
+        "frames_analyzed": 53,
+        "people_detected_frames": 42,
+        "suspicious_frames": 0,
+        "pose_score": 0.32,
+        "pose_reason": "Movimento moderado próximo à cintura (128°)",
+        "recording_path": "C:\\Users\\ghcas\\OneDrive\\Desktop\\Seventh\\poc-backend\\recordings\\annotated_parece_furto_falso_positivo_02_fdb6eaa018.webm",
+        "recording_filename": "annotated_parece_furto_falso_positivo_02_fdb6eaa018.webm",
+        "evidence_filename": "evidence_parece_furto_falso_positivo_02_fdb6eaa018.jpg"
+      },
+      "vlm_judge": {
+        "used_vlm": false,
+        "confirmed_theft": false,
+        "verdict": "DESCARTADO_POR_POSE",
+        "reason": "Sem gesto crítico sustentado (Movimento moderado próximo à cintura (128°); 0 frames suspeitos). VLM não acionado (custo zero)."
+      },
+      "situator_webhook_sent": false,
+      "situator_http_status": "Não enviado (sem alerta real)",
+      "dguard_integration": {
+        "executed": false,
+        "reachable": false,
+        "actions": [],
+        "message": "Sem alerta real para acionar D-Guard."
+      },
+      "situator_payload": {
+        "token": "demo-token-situator",
+        "eventCode": "AI_FALSE_POSITIVE_FILTERED",
+        "priority": "BAIXA",
+        "account": "Mercado Piloto 01",
+        "zone": "Corredor 04 - Limpeza",
+        "videoFile": "parece_furto_falso_positivo_02.mp4",
+        "durationSeconds": 19.0,
+        "confidence": 0.32,
+        "evidenceFile": "evidence_parece_furto_falso_positivo_02_fdb6eaa018.jpg",
+        "description": "Sem gesto crítico sustentado (Movimento moderado próximo à cintura (128°); 0 frames suspeitos). VLM não acionado (custo zero).",
+        "recommendedAction": "Nenhuma ação necessária (descartado pela verificação de 2 estágios)",
+        "timestamp": "2026-11-19T15:57:53Z"
+      }
+    }
+  },
+  {
+    "id": "bottle-detection",
+    "label": "Garrafas / Sem Gesto Suspeito (40s)",
+    "zone": "Corredor 03 - Bebidas",
+    "source_mp4": "samples/bottle-detection.mp4",
+    "annotated_video": "samples/annotated_bottle-detection_d52ba94aed.webm",
+    "evidence_image": "samples/evidence_bottle-detection_d52ba94aed.jpg",
+    "response": {
+      "cached": false,
+      "filename": "bottle-detection.mp4",
+      "video_sha256": "d52ba94aedf8",
+      "elapsed_ms": 18551,
+      "pose_analysis": {
+        "duration_s": 39.9,
+        "frames_analyzed": 52,
+        "people_detected_frames": 16,
+        "suspicious_frames": 0,
+        "pose_score": 0.0,
+        "pose_reason": "Tronco não visível",
+        "recording_path": "C:\\Users\\ghcas\\OneDrive\\Desktop\\Seventh\\poc-backend\\recordings\\annotated_bottle-detection_d52ba94aed.webm",
+        "recording_filename": "annotated_bottle-detection_d52ba94aed.webm",
+        "evidence_filename": "evidence_bottle-detection_d52ba94aed.jpg"
+      },
+      "vlm_judge": {
+        "used_vlm": false,
+        "confirmed_theft": false,
+        "verdict": "DESCARTADO_POR_POSE",
+        "reason": "Sem gesto crítico sustentado (Tronco não visível; 0 frames suspeitos). VLM não acionado (custo zero)."
+      },
+      "situator_webhook_sent": false,
+      "situator_http_status": "Não enviado (sem alerta real)",
+      "dguard_integration": {
+        "executed": false,
+        "reachable": false,
+        "actions": [],
+        "message": "Sem alerta real para acionar D-Guard."
+      },
+      "situator_payload": {
+        "token": "demo-token-situator",
+        "eventCode": "AI_FALSE_POSITIVE_FILTERED",
+        "priority": "BAIXA",
+        "account": "Mercado Piloto 01",
+        "zone": "Corredor 03 - Bebidas",
+        "videoFile": "bottle-detection.mp4",
+        "durationSeconds": 39.9,
+        "confidence": 0.0,
+        "evidenceFile": "evidence_bottle-detection_d52ba94aed.jpg",
+        "description": "Sem gesto crítico sustentado (Tronco não visível; 0 frames suspeitos). VLM não acionado (custo zero).",
+        "recommendedAction": "Nenhuma ação necessária (descartado pela verificação de 2 estágios)",
+        "timestamp": "2026-11-19T15:58:12Z"
+      }
+    }
+  }
+]

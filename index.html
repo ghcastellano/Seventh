@@ -718,13 +718,53 @@
     .poc-panel {
       min-width: 0;
       width: 100%;
+      max-width: 100%;
+      overflow: hidden;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 1.25rem;
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: 0.9rem;
     }
+    .poc-panel > *, .situator-alert-card, #situator-live-feed {
+      min-width: 0;
+      max-width: 100%;
+    }
+    .poc-samples-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .poc-sample-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: #e2e8f0;
+      padding: 0.42rem 0.68rem;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .poc-sample-btn:hover { border-color: var(--accent); color: #fff; }
+    .poc-sample-btn.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+    .poc-kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+      gap: 0.5rem;
+      min-width: 0;
+    }
+    .poc-kpi-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.5rem 0.65rem;
+      min-width: 0;
+    }
+    .poc-kpi-box small { display: block; font-size: 0.68rem; color: var(--muted); }
+    .poc-kpi-box strong { display: block; font-size: 1rem; margin-top: 0.1rem; color: #f8fafc; }
     .poc-stage {
       position: relative;
       background: #050811;
@@ -839,7 +879,9 @@
     }
     .poc-json {
       min-width: 0;
+      width: 100%;
       max-width: 100%;
+      box-sizing: border-box;
       background: #050811;
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -851,7 +893,7 @@
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       word-break: break-word;
-      max-height: 260px;
+      max-height: 240px;
     }
     .situator-alert-card {
       background: var(--surface-2);
@@ -863,6 +905,7 @@
       padding: 0.9rem 1rem;
       display: grid;
       gap: 0.35rem;
+      overflow-wrap: anywhere;
     }
     .situator-alert-card.is-high { border-left-color: #f87171; }
     .situator-alert-card.is-filtered { border-left-color: var(--accent); }
@@ -1950,12 +1993,17 @@
         <!-- Left: Video & Controls -->
         <div class="poc-panel">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-            <strong style="font-size:0.95rem;">1. Entrada de Vídeo Real (.MP4 / .WebM)</strong>
-            <span class="pill-low">100% Real • Automático ao Selecionar</span>
+            <strong style="font-size:0.95rem;">1. Vídeos Prontos &amp; Upload Real (.MP4 / .WebM)</strong>
+            <span id="poc-mode-badge" class="pill-low">Carregando modo...</span>
           </div>
 
-          <div style="font-size:0.78rem; color:#93c5fd; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:0.45rem 0.7rem;">
-            <strong>Como usar:</strong> 1) Escolha o arquivo abaixo → 2) <strong>Não precisa apertar Play</strong>: a IA analisa sozinha (~5–8s na CPU) → 3) O vídeo rastreado com esqueletos + resultado aparecem automaticamente.
+          <div style="display:grid; gap:0.4rem;">
+            <span style="font-size:0.75rem; color:var(--muted);">Clique em qualquer um dos 5 cenários prontos (funciona 24/7 no Vercel ou ao vivo via backend):</span>
+            <div class="poc-samples-bar" id="poc-samples-bar"></div>
+          </div>
+
+          <div style="font-size:0.77rem; color:#93c5fd; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:0.45rem 0.7rem;">
+            <strong>Como usar:</strong> clique em um vídeo pronto acima ou envie o seu abaixo — <strong>não precisa apertar Play</strong>; o rastreamento sutil LGPD e o veredito aparecem automaticamente.
           </div>
 
           <div class="poc-stage" id="poc-stage">
@@ -2037,8 +2085,8 @@
               <button type="button" class="btn-replay" id="poc-test-seventh" style="background:#0f172a; border:1px solid var(--border);">
                 Testar Conexão &amp; Disparo Real
               </button>
-              <a href="http://127.0.0.1:8090/" target="_blank" rel="noopener" class="btn-replay" style="text-decoration:none; background:rgba(52,211,153,0.14); color:#34d399; border:1px solid rgba(52,211,153,0.35);">
-                Abrir Situator Web (8090) ↗
+              <a id="btn-open-situator" href="http://127.0.0.1:8090/" target="_blank" rel="noopener" class="btn-replay" style="text-decoration:none; background:rgba(52,211,153,0.14); color:#34d399; border:1px solid rgba(52,211,153,0.35);">
+                Abrir Situator Web ↗
               </a>
             </div>
             <div style="font-size:0.74rem; color:var(--muted); overflow-wrap:anywhere;">
@@ -2049,33 +2097,40 @@
 
         <!-- Right: Output & Situator Webhook -->
         <div class="poc-panel">
-          <strong style="font-size:0.95rem;">2. Resultado da IA &amp; Ações Executadas na Seventh</strong>
+          <strong style="font-size:0.95rem;">2. Resultado da IA, KPIs &amp; Fila Situator</strong>
+
+          <div class="poc-kpi-strip" id="poc-kpi-strip">
+            <div class="poc-kpi-box"><small>Falsos Evitados</small><strong id="kpi-fp" style="color:var(--emerald);">0</strong></div>
+            <div class="poc-kpi-box"><small>VLM Poupado</small><strong id="kpi-saved" style="color:var(--accent);">0</strong></div>
+            <div class="poc-kpi-box"><small>Furtos Reais</small><strong id="kpi-real" style="color:#f87171;">0</strong></div>
+            <div class="poc-kpi-box"><small>Valor Recuperado</small><strong id="kpi-brl" style="color:var(--amber);">R$ 0</strong></div>
+          </div>
 
           <div class="situator-alert-card" id="poc-alert-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
               <span id="poc-verdict" style="font-weight:700; font-size:0.92rem;">Aguardando análise...</span>
               <span id="poc-score-badge" class="pill-med">Score: --</span>
             </div>
-            <div id="poc-metrics" style="font-size:0.76rem; color:var(--accent);"></div>
-            <p id="poc-reason" style="font-size:0.84rem; color:#cbd5e1;"></p>
-            <p id="poc-action" style="font-size:0.8rem; color:var(--emerald);"></p>
-            <div id="poc-integration-log" style="font-size:0.76rem; color:#93c5fd; border-top:1px dashed var(--border); padding-top:0.45rem; display:none;"></div>
+            <div id="poc-metrics" style="font-size:0.76rem; color:var(--accent); overflow-wrap:anywhere;"></div>
+            <p id="poc-reason" style="font-size:0.84rem; color:#cbd5e1; overflow-wrap:anywhere;"></p>
+            <p id="poc-action" style="font-size:0.8rem; color:var(--emerald); overflow-wrap:anywhere;"></p>
+            <div id="poc-integration-log" style="font-size:0.76rem; color:#93c5fd; border-top:1px dashed var(--border); padding-top:0.45rem; display:none; overflow-wrap:anywhere;"></div>
           </div>
 
-          <div>
+          <div style="min-width:0; max-width:100%;">
             <div style="font-size:0.78rem; color:var(--muted); margin-bottom:0.35rem;">Payload JSON enviado ao Webhook / API HTTP/JSON do Situator:</div>
             <pre class="poc-json" id="poc-json">{}</pre>
           </div>
 
-          <div style="border-top:1px solid var(--border); padding-top:0.85rem;">
+          <div style="border-top:1px solid var(--border); padding-top:0.85rem; min-width:0; max-width:100%;">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:0.4rem; margin-bottom:0.5rem; flex-wrap:wrap;">
-              <strong style="font-size:0.86rem;">3. Fila Operacional do Situator (8090)</strong>
-              <div style="display:flex; align-items:center; gap:0.45rem;">
+              <strong style="font-size:0.86rem;">3. Fila Operacional do Situator</strong>
+              <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
                 <span id="situator-conn-badge" class="pill-med">Verificando...</span>
                 <button type="button" id="poc-clear-queue" style="background:transparent; border:1px solid var(--border); color:var(--muted); font-size:0.72rem; padding:0.2rem 0.5rem; border-radius:6px; cursor:pointer;">Limpar fila</button>
               </div>
             </div>
-            <div id="situator-live-feed" style="display:grid; gap:0.5rem; max-height:240px; overflow-y:auto;">
+            <div id="situator-live-feed" style="display:grid; gap:0.5rem; max-height:260px; overflow-y:auto;">
               <div style="font-size:0.8rem; color:var(--muted);">Aguardando ocorrências reais enviadas via Webhook...</div>
             </div>
           </div>
@@ -2336,13 +2391,41 @@
 
     renderSimulator();
 
-    // Demo POC (100% Real — duração integral, estado limpo a cada arquivo e integração D-Guard + Situator)
+    // Demo POC (Híbrido: Ao Vivo via Backend GPU/CPU ou ?api=HTTPS, e Vitrine Cloud 24/7 com 5 vídeos reais no Vercel)
     let uploadedFile = null;
     let uploadedObjectUrl = null;
     let hasAnalyzedCurrentFile = false;
     let activeAbortController = null;
     let latestRequestId = 0;
     let loadingTimerId = null;
+    let sampleCatalog = [];
+    let backendOnline = false;
+    let situatorOnline = false;
+
+    const cloudStats = { fp: 0, savedVlm: 0, realTheft: 0, recoveredBrl: 0 };
+    const cloudEvents = [];
+
+    const urlParamApi = new URLSearchParams(location.search).get('api');
+    if (urlParamApi) {
+      const cleanApi = urlParamApi.trim().replace(/\/+$/, '');
+      document.getElementById('poc-api').value = cleanApi + '/analyze';
+      document.getElementById('poc-situator-url').value = cleanApi + '/situator/webhook';
+      document.getElementById('btn-open-situator').href = cleanApi + '/situator/';
+    }
+
+    function updateKpiDisplay(serverData = null) {
+      if (serverData) {
+        document.getElementById('kpi-fp').textContent = cloudStats.fp;
+        document.getElementById('kpi-saved').textContent = cloudStats.savedVlm;
+        document.getElementById('kpi-real').textContent = serverData.count ?? cloudStats.realTheft;
+        document.getElementById('kpi-brl').textContent = 'R$ ' + Math.round(serverData.recovered_total_brl ?? cloudStats.recoveredBrl);
+      } else {
+        document.getElementById('kpi-fp').textContent = cloudStats.fp;
+        document.getElementById('kpi-saved').textContent = cloudStats.savedVlm;
+        document.getElementById('kpi-real').textContent = cloudStats.realTheft;
+        document.getElementById('kpi-brl').textContent = 'R$ ' + Math.round(cloudStats.recoveredBrl);
+      }
+    }
 
     function setLoadingState(active, filename = '') {
       const overlay = document.getElementById('poc-loading-overlay');
@@ -2397,6 +2480,11 @@
       return apiUrl.replace(/\/analyze\/?$/, '');
     }
 
+    function getSituatorBaseUrl() {
+      const url = document.getElementById('poc-situator-url').value.trim() || 'http://127.0.0.1:8090/webhook';
+      return url.replace(/\/webhook\/?$/, '');
+    }
+
     function resetPocOutput(filename) {
       document.getElementById('poc-alert-card').className = 'situator-alert-card';
       document.getElementById('poc-verdict').textContent = 'Processando: ' + filename + '...';
@@ -2438,33 +2526,76 @@
       }
     }
 
-    function renderPocResult(res) {
+    function applyAnalysisResponse(data, videoUrlOverride = null, isCloudShowcase = false) {
+      const cfg = getSeventhConfig();
+      const pa = data.pose_analysis || {};
+      const score = pa.pose_score ?? 0.0;
+      const isAlert = Boolean(data.vlm_judge?.confirmed_theft);
+      const baseApi = getBaseApiUrl();
+      const recFile = pa.recording_filename;
+      const recordingUrl = videoUrlOverride || (recFile ? (baseApi + '/recordings/' + recFile) : null);
+
+      if (!isAlert) cloudStats.fp += 1;
+      else cloudStats.realTheft += 1;
+      if (!data.vlm_judge?.used_vlm || data.cached) cloudStats.savedVlm += 1;
+      updateKpiDisplay();
+
+      const metricsText =
+        `Arquivo: ${data.filename || '--'} • Duração: ${pa.duration_s ?? '--'}s • ` +
+        `Frames: ${pa.frames_analyzed ?? 0} • Suspeitos (Pose): ${pa.suspicious_frames ?? 0} • ` +
+        `VLM: ${data.vlm_judge?.model || (data.vlm_judge?.used_vlm ? 'ativo' : 'poupado (custo zero)')}`;
+
       const card = document.getElementById('poc-alert-card');
-      card.className = res.cardClass;
-      document.getElementById('poc-verdict').textContent = res.verdict;
+      card.className = isAlert ? 'situator-alert-card is-high' : 'situator-alert-card is-filtered';
+      document.getElementById('poc-verdict').textContent = isAlert
+        ? 'ALERTA REAL CONFIRMADO (Pose + VLM)'
+        : (data.vlm_judge?.verdict === 'DESCARTADO_PELO_VLM'
+            ? 'DESCARTADO PELO VLM (Falso Positivo Evitado)'
+            : 'BAIXO RISCO (' + (data.vlm_judge?.verdict || 'POSE') + ')');
       const badge = document.getElementById('poc-score-badge');
-      badge.className = res.badgeClass;
-      badge.textContent = res.score !== null ? ('Score: ' + Math.round(res.score * 100) + '%') : 'Erro';
-      document.getElementById('poc-metrics').textContent = res.metrics || '';
-      document.getElementById('poc-reason').textContent = res.reason;
-      document.getElementById('poc-action').textContent = res.action;
-      document.getElementById('poc-json').textContent = JSON.stringify(res.payload, null, 2);
-      if (res.rawData) renderIntegrationLog(res.rawData);
+      badge.className = isAlert ? 'pill-high' : 'pill-low';
+      badge.textContent = 'Score: ' + Math.round(score * 100) + '%';
+      document.getElementById('poc-metrics').textContent = metricsText;
+      document.getElementById('poc-reason').textContent =
+        (isCloudShowcase ? '[VITRINE CLOUD] ' : (data.cached ? '[CACHE SHA-256] ' : '')) +
+        (data.vlm_judge?.reason || 'Análise concluída.');
+      document.getElementById('poc-action').textContent = isAlert
+        ? (isCloudShowcase
+            ? 'Ocorrência inserida na Fila Situator (simulação Cloud fiel ao payload real).'
+            : 'Ocorrência enviada ao Situator (' + cfg.situatorUrl + ')' + (data.dguard_integration?.executed ? ' + comandos CGI no D-Guard!' : '!'))
+        : 'Nenhuma ocorrência disparada (falso alarme filtrado — poupou operador).';
+      document.getElementById('poc-json').textContent = JSON.stringify(data.situator_payload || data, null, 2);
+      renderIntegrationLog(data);
 
       clearCanvasOverlay();
-      if (res.recordingUrl) {
+      if (recordingUrl) {
         const video = document.getElementById('poc-video');
         if (uploadedObjectUrl) {
           URL.revokeObjectURL(uploadedObjectUrl);
           uploadedObjectUrl = null;
         }
         hasAnalyzedCurrentFile = true;
-        video.src = res.recordingUrl + '?t=' + Date.now();
+        video.src = recordingUrl + (recordingUrl.startsWith('http') || recordingUrl.startsWith('samples/') ? ('?t=' + Date.now()) : '');
         video.style.display = 'block';
         video.loop = true;
         document.getElementById('poc-stage').classList.add('has-video');
         document.getElementById('poc-placeholder').style.display = 'none';
         video.play().catch(() => {});
+      }
+
+      if (isCloudShowcase && isAlert && data.situator_payload) {
+        cloudEvents.unshift({
+          id: 'cloud-' + Math.random().toString(36).slice(2, 8),
+          status: 'ABERTA',
+          outcome: '',
+          outcomeLabel: '',
+          recoveredBrl: 0,
+          localEvidenceUrl: videoUrlOverride ? videoUrlOverride.replace(/annotated_(.+)\.webm$/, 'evidence_$1.jpg') : '',
+          ...data.situator_payload,
+          account: cfg.account,
+          zone: cfg.zone,
+        });
+        renderQueueCards(cloudEvents, true);
       }
     }
 
@@ -2473,11 +2604,11 @@
       const statusEl = document.getElementById('poc-status');
 
       if (!uploadedFile) {
-        statusEl.textContent = 'Escolha um arquivo .MP4/.WebM primeiro.';
+        statusEl.textContent = 'Escolha um dos 5 vídeos prontos acima ou um arquivo .MP4/.WebM.';
         return;
       }
-      if (!cfg.apiUrl) {
-        statusEl.textContent = 'Informe a URL do backend (ex: http://127.0.0.1:8000/analyze).';
+      if (location.protocol === 'https:' && cfg.apiUrl.startsWith('http://')) {
+        statusEl.textContent = 'Sem backend HTTPS para upload livre; selecione um dos 5 cenários prontos acima ou passe ?api=https://seu-tunel.';
         return;
       }
 
@@ -2490,7 +2621,7 @@
 
       resetPocOutput(uploadedFile.name);
       setLoadingState(true, uploadedFile.name);
-      statusEl.textContent = 'Analisando vídeo inteiro (' + uploadedFile.name + ')... aguarde sem precisar clicar em Play.';
+      statusEl.textContent = 'Analisando vídeo inteiro (' + uploadedFile.name + ')... aguarde sem clicar em Play.';
 
       try {
         const fd = new FormData();
@@ -2510,56 +2641,22 @@
           throw new Error(data.detail || ('HTTP ' + resp.status));
         }
         hasAnalyzedCurrentFile = true;
-
-        const pa = data.pose_analysis || {};
-        const score = pa.pose_score ?? 0.0;
-        const isAlert = Boolean(data.vlm_judge?.confirmed_theft);
-        const baseApi = getBaseApiUrl();
-        const recFile = pa.recording_filename;
-        const metricsText =
-          `Arquivo: ${data.filename || uploadedFile.name} • Duração: ${pa.duration_s ?? '--'}s • ` +
-          `Frames: ${pa.frames_analyzed ?? 0} • Suspeitos (Pose): ${pa.suspicious_frames ?? 0} • ` +
-          `VLM: ${data.vlm_judge?.model || (data.vlm_judge?.used_vlm ? 'ativo' : 'poupado (custo zero)')}`;
-
         setLoadingState(false);
-        renderPocResult({
-          recordingUrl: recFile ? (baseApi + '/recordings/' + recFile) : null,
-          score,
-          metrics: metricsText,
-          verdict: isAlert
-            ? 'ALERTA REAL CONFIRMADO (Pose + VLM)'
-            : (data.vlm_judge?.verdict === 'DESCARTADO_PELO_VLM'
-                ? 'DESCARTADO PELO VLM (Falso Positivo Evitado)'
-                : 'BAIXO RISCO (' + (data.vlm_judge?.verdict || 'POSE') + ')'),
-          cardClass: isAlert ? 'situator-alert-card is-high' : 'situator-alert-card is-filtered',
-          badgeClass: isAlert ? 'pill-high' : 'pill-low',
-          reason: (data.cached ? '[CACHE SHA-256] ' : '') + (data.vlm_judge?.reason || 'Análise concluída.'),
-          action: data.situator_webhook_sent
-            ? 'Ocorrência enviada ao Situator (' + cfg.situatorUrl + ')' + (data.dguard_integration?.executed ? ' + comandos CGI executados no D-Guard!' : '!')
-            : 'Nenhuma ocorrência disparada (sem furto confirmado).',
-          payload: data.situator_payload || data,
-          rawData: data
-        });
-        statusEl.textContent = 'Pronto em ' + ((data.elapsed_ms || 0) / 1000).toFixed(1) + 's (' + (pa.duration_s ?? '--') + 's de vídeo)' + (data.cached ? ' [cache].' : ' — vídeo rastreado tocando em loop.');
+        applyAnalysisResponse(data);
+        const pa = data.pose_analysis || {};
+        statusEl.textContent = 'Pronto em ' + ((data.elapsed_ms || 0) / 1000).toFixed(1) + 's (' + (pa.duration_s ?? '--') + 's de vídeo) — vídeo rastreado tocando em loop.';
         pollSituatorFeed();
         checkSeventhStatus();
       } catch (err) {
         if (err.name === 'AbortError' || myReqId !== latestRequestId) return;
         setLoadingState(false);
-        const hint = location.protocol === 'https:' && cfg.apiUrl.startsWith('http://')
-          ? ' Abra em http://127.0.0.1:5500/ para conectar ao backend local.'
-          : '';
         statusEl.textContent = 'Falha ao conectar no backend: ' + err.message;
-        renderPocResult({
-          score: null,
-          metrics: 'Arquivo: ' + (uploadedFile?.name || '--'),
-          verdict: 'ERRO DE CONEXÃO COM BACKEND',
-          cardClass: 'situator-alert-card is-high',
-          badgeClass: 'pill-high',
-          reason: err.message + '.' + hint,
-          action: 'Verifique se o backend (porta 8000) está rodando e acessível.',
-          payload: { error: err.message, apiUrl: cfg.apiUrl }
-        });
+        document.getElementById('poc-alert-card').className = 'situator-alert-card is-high';
+        document.getElementById('poc-verdict').textContent = 'BACKEND AO VIVO OFFLINE';
+        document.getElementById('poc-score-badge').className = 'pill-med';
+        document.getElementById('poc-score-badge').textContent = 'Vitrine Cloud';
+        document.getElementById('poc-reason').textContent = 'Use os 5 vídeos prontos acima para ver a demonstração completa no Vercel sem servidor local, ou conecte via ?api=https://seu-tunel.';
+        document.getElementById('poc-json').textContent = JSON.stringify({ error: err.message, apiUrl: cfg.apiUrl }, null, 2);
       } finally {
         if (activeAbortController === controller) {
           activeAbortController = null;
@@ -2567,9 +2664,57 @@
       }
     }
 
+    async function selectPresetSample(item, btnEl) {
+      document.querySelectorAll('.poc-sample-btn').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      document.getElementById('poc-zone').value = item.zone || 'Corredor 03';
+      const statusEl = document.getElementById('poc-status');
+
+      if (backendOnline) {
+        try {
+          statusEl.textContent = 'Baixando cenário "' + item.label + '" para envio ao vivo...';
+          const mp4Resp = await fetch(item.source_mp4);
+          const blob = await mp4Resp.blob();
+          const fname = item.source_mp4.split('/').pop();
+          uploadedFile = new File([blob], fname, { type: 'video/mp4' });
+          hasAnalyzedCurrentFile = false;
+          runPocAnalysis();
+          return;
+        } catch {
+          // Fallback para resultado pré-processado se download/envio falhar
+        }
+      }
+
+      const cloned = JSON.parse(JSON.stringify(item.response));
+      cloned.situator_payload.account = getSeventhConfig().account;
+      cloned.situator_payload.zone = item.zone;
+      applyAnalysisResponse(cloned, item.annotated_video, true);
+      statusEl.textContent = 'Vitrine Cloud 24/7: exibindo saída real pré-processada de "' + item.label + '".';
+    }
+
+    async function initSampleCatalog() {
+      const bar = document.getElementById('poc-samples-bar');
+      try {
+        const r = await fetch('samples/catalog.json');
+        sampleCatalog = await r.json();
+        bar.innerHTML = '';
+        sampleCatalog.forEach((item) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'poc-sample-btn';
+          b.textContent = item.label;
+          b.addEventListener('click', () => selectPresetSample(item, b));
+          bar.appendChild(b);
+        });
+      } catch {
+        bar.innerHTML = '<span style="font-size:0.78rem; color:var(--muted);">Catálogo de exemplos indisponível.</span>';
+      }
+    }
+
     document.getElementById('poc-file').addEventListener('change', (e) => {
       const f = e.target.files[0];
       if (!f) return;
+      document.querySelectorAll('.poc-sample-btn').forEach(b => b.classList.remove('active'));
       uploadedFile = f;
       hasAnalyzedCurrentFile = false;
       if (uploadedObjectUrl) URL.revokeObjectURL(uploadedObjectUrl);
@@ -2595,7 +2740,25 @@
       const cfg = getSeventhConfig();
       const baseApi = getBaseApiUrl();
       const dgBadge = document.getElementById('dguard-conn-badge');
+      const modeBadge = document.getElementById('poc-mode-badge');
+      const isBlockedMixed = location.protocol === 'https:' && baseApi.startsWith('http://');
+      if (isBlockedMixed) {
+        backendOnline = false;
+        modeBadge.className = 'pill-med';
+        modeBadge.textContent = 'Modo Vitrine Cloud 24/7 (5 Vídeos Reais)';
+        dgBadge.className = 'pill-med';
+        dgBadge.textContent = 'Cloud Sem Túnel (use ?api=https://...)';
+        return;
+      }
       try {
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 1600);
+        const h = await fetch(baseApi + '/health', { signal: ctrl.signal });
+        backendOnline = h.ok;
+        if (backendOnline) {
+          modeBadge.className = 'pill-low';
+          modeBadge.textContent = 'Backend IA Ao Vivo Conectado';
+        }
         const qs = new URLSearchParams({
           dguard_url: cfg.dguardUrl,
           dguard_user: cfg.dguardUser,
@@ -2606,14 +2769,17 @@
         const d = await r.json();
         if (d.dguard?.reachable) {
           dgBadge.className = 'pill-low';
-          dgBadge.textContent = 'CONECTADO (' + (d.dguard.server || 'D-Guard') + ')';
+          dgBadge.textContent = 'D-Guard CONECTADO (' + (d.dguard.server || 'VMS') + ')';
         } else {
           dgBadge.className = 'pill-med';
           dgBadge.textContent = 'D-Guard Offline (Desktop fechado)';
         }
       } catch {
+        backendOnline = false;
+        modeBadge.className = 'pill-med';
+        modeBadge.textContent = 'Modo Vitrine Cloud 24/7 (5 Vídeos Reais)';
         dgBadge.className = 'pill-med';
-        dgBadge.textContent = 'Backend 8000 Offline';
+        dgBadge.textContent = 'Backend Local Offline';
       }
     }
 
@@ -2621,6 +2787,26 @@
       const cfg = getSeventhConfig();
       const baseApi = getBaseApiUrl();
       const statusEl = document.getElementById('poc-status');
+      if (!backendOnline) {
+        cloudEvents.unshift({
+          id: 'cloud-test-' + Math.random().toString(36).slice(2, 6),
+          status: 'ABERTA',
+          eventCode: 'AI_SHOPLIFTING_SUSPECT',
+          priority: 'ALTA',
+          account: cfg.account,
+          zone: cfg.zone,
+          videoFile: 'teste_integracao.mp4',
+          confidence: 0.92,
+          localEvidenceUrl: 'samples/evidence_furto_real_01_casaco_8d013da2ea.jpg',
+          description: '[SIMULAÇÃO CLOUD] Evento de teste inserido na fila operacional Situator.',
+          timestamp: new Date().toISOString(),
+        });
+        cloudStats.realTheft += 1;
+        updateKpiDisplay();
+        renderQueueCards(cloudEvents, true);
+        statusEl.textContent = 'Teste simulado inserido na Fila Situator abaixo (conecte ?api= para disparo real).';
+        return;
+      }
       statusEl.textContent = 'Testando integração real com Situator e D-Guard CGI...';
       try {
         const fd = new FormData();
@@ -2634,13 +2820,13 @@
         const r = await fetch(baseApi + '/seventh/trigger-test', { method: 'POST', body: fd });
         const d = await r.json();
         renderIntegrationLog({
-          situator_http_status: d.situator?.sent ? ('HTTP ' + d.situator.status + ' (Ocorrência inserida na fila!)') : ('Erro: ' + (d.situator?.error || 'Offline')),
+          situator_http_status: d.situator?.sent ? ('HTTP ' + d.situator.status + ' (Ocorrência na fila!)') : ('Erro: ' + (d.situator?.error || 'Offline')),
           dguard_integration: d.dguard,
         });
         document.getElementById('poc-json').textContent = JSON.stringify(d, null, 2);
         statusEl.textContent = d.dguard?.executed
           ? 'Teste real executado no Situator + D-Guard!'
-          : 'Ocorrência enviada ao Situator (' + cfg.situatorUrl + '). D-Guard local offline (abra DGuard.exe p/ CGI).';
+          : 'Ocorrência enviada ao Situator (' + cfg.situatorUrl + '). D-Guard local fechado.';
         pollSituatorFeed();
         checkSeventhStatus();
       } catch (err) {
@@ -2648,68 +2834,111 @@
       }
     });
 
-    clearCanvasOverlay();
-    checkSeventhStatus();
-
-    function getSituatorBaseUrl() {
-      const url = document.getElementById('poc-situator-url').value.trim() || 'http://127.0.0.1:8090/webhook';
-      return url.replace(/\/webhook\/?$/, '');
-    }
-
-    async function ackSituatorEvent(evId) {
+    async function ackSituatorEvent(evId, outcome = 'RECUPERADO', brl = 120, isCloud = false) {
+      if (isCloud) {
+        const item = cloudEvents.find(x => x.id === evId);
+        if (item && item.status !== 'CONCLUIDA') {
+          item.status = 'CONCLUIDA';
+          item.outcome = outcome;
+          item.outcomeLabel = outcome === 'RECUPERADO' ? `Recuperado (R$ ${brl}) ✓` : (outcome === 'FALSO_ALARME' ? 'Falso Alarme' : 'POP Atendimento ✓');
+          if (outcome === 'RECUPERADO') cloudStats.recoveredBrl += brl;
+          updateKpiDisplay();
+          renderQueueCards(cloudEvents, true);
+        }
+        return;
+      }
       const baseSit = getSituatorBaseUrl();
-      await fetch(baseSit + '/events/' + evId + '/ack?status=CONCLUIDA', { method: 'POST' });
+      await fetch(`${baseSit}/events/${evId}/ack?status=CONCLUIDA&outcome=${outcome}&recovered_brl=${brl}`, { method: 'POST' });
       pollSituatorFeed();
     }
     window.ackSituatorEvent = ackSituatorEvent;
 
     document.getElementById('poc-clear-queue').addEventListener('click', async () => {
-      const baseSit = getSituatorBaseUrl();
-      await fetch(baseSit + '/events/clear', { method: 'POST' }).catch(() => {});
-      pollSituatorFeed();
+      cloudEvents.length = 0;
+      cloudStats.fp = 0; cloudStats.savedVlm = 0; cloudStats.realTheft = 0; cloudStats.recoveredBrl = 0;
+      updateKpiDisplay();
+      if (situatorOnline) {
+        await fetch(getSituatorBaseUrl() + '/events/clear', { method: 'POST' }).catch(() => {});
+        pollSituatorFeed();
+      } else {
+        renderQueueCards([], true);
+      }
     });
 
-    // Polling em tempo real da Fila Operacional do Situator
+    document.getElementById('btn-open-situator').addEventListener('click', (e) => {
+      if (!situatorOnline) {
+        e.preventDefault();
+        document.getElementById('situator-live-feed').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById('poc-status').textContent = 'Situator Web externo indisponível sem servidor local; utilize a Fila Operacional interativa abaixo.';
+      }
+    });
+
+    function renderQueueCards(events, isCloud = false) {
+      const feed = document.getElementById('situator-live-feed');
+      const baseApi = getBaseApiUrl();
+      if (!events || events.length === 0) {
+        feed.innerHTML = `<div style="font-size:0.8rem; color:var(--muted);">${isCloud ? 'Selecione "Furto Real #1" acima para ver uma ocorrência real entrar na fila.' : 'Conectado ao Situator. Nenhuma ocorrência na fila ainda.'}</div>`;
+        return;
+      }
+      feed.innerHTML = events.slice(0, 8).map(ev => {
+        const isDone = ev.status === 'CONCLUIDA';
+        const isFp = ev.outcome === 'FALSO_ALARME';
+        const imgSrc = ev.localEvidenceUrl || (ev.evidenceFile ? `${baseApi}/recordings/${ev.evidenceFile}` : '');
+        const imgHtml = imgSrc
+          ? `<img src="${imgSrc}" alt="Evidência LGPD" style="width:72px; height:52px; object-fit:cover; border-radius:6px; border:1px solid var(--border); flex-shrink:0;" />`
+          : '';
+        return `
+          <div style="display:flex; gap:0.6rem; align-items:flex-start; background:var(--surface-2); border:1px solid var(--border); border-left:3px solid ${isFp ? '#fbbf24' : (isDone ? '#34d399' : '#f87171')}; border-radius:8px; padding:0.6rem 0.7rem; font-size:0.76rem; min-width:0; max-width:100%;">
+            ${imgHtml}
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; justify-content:space-between; gap:0.4rem; font-weight:600; flex-wrap:wrap;">
+                <span>${ev.eventCode || 'EVENTO'} • ${ev.zone || ''}</span>
+                <span style="color:${isFp ? '#fbbf24' : (isDone ? '#34d399' : '#f87171')};">${isDone ? (ev.outcomeLabel || 'CONCLUÍDA') : 'ALTA (' + Math.round((ev.confidence || 0) * 100) + '%)'}</span>
+              </div>
+              <div style="color:#cbd5e1; margin-top:0.15rem; overflow-wrap:anywhere;">${ev.description || ''}</div>
+              <div style="color:var(--muted); margin-top:0.15rem; overflow-wrap:anywhere;">${ev.account || ''} • ${ev.videoFile || 'Live'}</div>
+              ${isDone ? '' : `
+                <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-top:0.4rem;">
+                  <button type="button" onclick="ackSituatorEvent('${ev.id}','RECUPERADO',120,${isCloud})" style="background:rgba(52,211,153,0.16); color:#34d399; border:1px solid rgba(52,211,153,0.35); border-radius:6px; padding:0.22rem 0.48rem; font-size:0.7rem; cursor:pointer;">✓ Recuperado (+R$120)</button>
+                  <button type="button" onclick="ackSituatorEvent('${ev.id}','ATENDIMENTO',0,${isCloud})" style="background:rgba(56,189,248,0.14); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); border-radius:6px; padding:0.22rem 0.48rem; font-size:0.7rem; cursor:pointer;">POP Atendimento</button>
+                  <button type="button" onclick="ackSituatorEvent('${ev.id}','FALSO_ALARME',0,${isCloud})" style="background:rgba(251,191,36,0.12); color:#fbbf24; border:1px solid rgba(251,191,36,0.3); border-radius:6px; padding:0.22rem 0.48rem; font-size:0.7rem; cursor:pointer;">Falso Alarme</button>
+                </div>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     async function pollSituatorFeed() {
       const badge = document.getElementById('situator-conn-badge');
-      const feed = document.getElementById('situator-live-feed');
       const baseSit = getSituatorBaseUrl();
-      const baseApi = getBaseApiUrl();
+      if (location.protocol === 'https:' && baseSit.startsWith('http://')) {
+        situatorOnline = false;
+        badge.className = 'pill-med';
+        badge.textContent = 'Fila Cloud Integrada';
+        renderQueueCards(cloudEvents, true);
+        return;
+      }
       try {
         const resp = await fetch(baseSit + '/events');
         const data = await resp.json();
+        situatorOnline = true;
         badge.className = data.open_count > 0 ? 'pill-high' : 'pill-low';
         badge.textContent = 'INTEGRADO (' + (data.open_count ?? data.count ?? 0) + ' abertas / ' + (data.count || 0) + ' total)';
-        if (!data.events || data.events.length === 0) {
-          feed.innerHTML = '<div style="font-size:0.8rem; color:var(--muted);">Conectado ao Situator. Nenhuma ocorrência na fila ainda.</div>';
-          return;
-        }
-        feed.innerHTML = data.events.slice(0, 8).map(ev => {
-          const isDone = ev.status === 'CONCLUIDA';
-          const imgHtml = ev.evidenceFile
-            ? `<img src="${baseApi}/recordings/${ev.evidenceFile}" alt="Evidência LGPD" style="width:74px; height:52px; object-fit:cover; border-radius:6px; border:1px solid var(--border); flex-shrink:0;" />`
-            : '';
-          return `
-            <div style="display:flex; gap:0.6rem; align-items:center; background:var(--surface-2); border:1px solid var(--border); border-left:3px solid ${isDone ? '#34d399' : (ev.priority === 'ALTA' ? '#f87171' : '#38bdf8')}; border-radius:8px; padding:0.55rem 0.7rem; font-size:0.77rem;">
-              ${imgHtml}
-              <div style="flex:1; min-width:0;">
-                <div style="display:flex; justify-content:space-between; gap:0.4rem; font-weight:600;">
-                  <span>${ev.eventCode || 'EVENTO'} • ${ev.zone || ''}</span>
-                  <span style="color:${isDone ? '#34d399' : '#f87171'};">${isDone ? 'CONCLUÍDA' : (ev.priority || 'ALTA') + ' (' + Math.round((ev.confidence || 0) * 100) + '%)'}</span>
-                </div>
-                <div style="color:#cbd5e1; margin-top:0.12rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${ev.description || ''}</div>
-                <div style="color:var(--muted); margin-top:0.12rem;">${ev.account || ''} • ${ev.videoFile || 'Live'} • ${ev.timestamp || ''}</div>
-              </div>
-              ${isDone ? '' : `<button type="button" onclick="ackSituatorEvent('${ev.id}')" style="background:rgba(52,211,153,0.14); color:#34d399; border:1px solid rgba(52,211,153,0.35); border-radius:6px; padding:0.25rem 0.5rem; font-size:0.72rem; cursor:pointer; flex-shrink:0;">Tratar</button>`}
-            </div>
-          `;
-        }).join('');
+        updateKpiDisplay(data);
+        renderQueueCards(data.events || [], false);
       } catch {
+        situatorOnline = false;
         badge.className = 'pill-med';
-        badge.textContent = 'Situator Offline (8090)';
+        badge.textContent = 'Fila Cloud Integrada';
+        renderQueueCards(cloudEvents, true);
       }
     }
-    setInterval(pollSituatorFeed, 2500);
+
+    clearCanvasOverlay();
+    initSampleCatalog();
+    checkSeventhStatus();
+    setInterval(pollSituatorFeed, 3000);
     pollSituatorFeed();
   </script>
 </body>
