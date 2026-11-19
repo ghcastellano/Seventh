@@ -2338,8 +2338,8 @@
       });
     });
 
-    // Inicializa com o 1o cenário simulado (sem esqueleto falso no canvas)
-    document.getElementById('poc-run').click();
+    // Mantém painel limpo aguardando upload de vídeo real (sem auto-simulação enganosa)
+    clearCanvasOverlay();
 
     // Polling em tempo real da Fila do Situator (Mock 8090)
     async function pollSituatorFeed() {
