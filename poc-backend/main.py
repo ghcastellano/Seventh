@@ -162,24 +162,23 @@ def _score_person_pose(kpts: Any, confs: Any = None) -> tuple[float, str]:
     return round(min(0.95, best_score), 2), best_reason
 
 
-def _build_storyboard_b64(sampled_frames: list[np.ndarray], peak_pos: int) -> tuple[str, str]:
-    """Gera colagem 2x2 cronológica (T1..T4) focada antes, durante e após o pico suspeito."""
-    n = len(sampled_frames)
+def _build_storyboard_b64(clean_frames: list[np.ndarray], annotated_frames: list[np.ndarray], peak_pos: int) -> tuple[str, str]:
+    """Gera colagem 2x2 cronológica (T1..T4) com quadros limpos (apenas blur LGPD, sem linhas cobrindo as mãos)."""
+    n = len(clean_frames)
     if n == 0:
         return "", ""
     if n <= 4:
         idxs = [min(i, n - 1) for i in range(4)]
     else:
-        raw = [
-            0,
-            max(1, min(n - 2, peak_pos)),
-            max(1, min(n - 2, peak_pos + max(2, n // 8))),
-            n - 1,
+        idxs = [
+            int(n * 0.12),
+            int(n * 0.40),
+            max(int(n * 0.58), min(int(n * 0.78), peak_pos)),
+            int(n * 0.90),
         ]
-        # Garante 4 índices ordenados e distintos quando possível
-        idxs = sorted(set(raw))
+        idxs = sorted(set(idxs))
         while len(idxs) < 4:
-            for cand in [0, int(n * 0.25), int(n * 0.5), int(n * 0.75), n - 1]:
+            for cand in [0, int(n * 0.30), int(n * 0.65), n - 1]:
                 if cand not in idxs:
                     idxs.append(cand)
                 if len(idxs) == 4:
@@ -190,13 +189,14 @@ def _build_storyboard_b64(sampled_frames: list[np.ndarray], peak_pos: int) -> tu
 
     tiles = []
     for t_i, f_idx in enumerate(idxs):
-        tile = cv2.resize(sampled_frames[f_idx], (360, 270))
+        tile = cv2.resize(clean_frames[f_idx], (400, 300))
         cv2.putText(tile, f"T{t_i + 1}", (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 255), 2)
         tiles.append(tile)
 
     grid = np.vstack([np.hstack(tiles[:2]), np.hstack(tiles[2:])])
     _, buf_grid = cv2.imencode(".jpg", grid)
-    _, buf_peak = cv2.imencode(".jpg", sampled_frames[peak_pos])
+    ev_frame = annotated_frames[min(peak_pos, len(annotated_frames) - 1)]
+    _, buf_peak = cv2.imencode(".jpg", ev_frame)
     return base64.b64encode(buf_grid).decode("utf-8"), base64.b64encode(buf_peak).decode("utf-8")
 
 
@@ -229,7 +229,7 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
         pose_model.predictor.trackers.clear()
 
     if total_frames > 0:
-        target_samples = min(total_frames, max(24, min(65, int(round(max(duration_s, 1.0) * 3.0)))))
+        target_samples = min(total_frames, max(24, min(50, int(round(max(duration_s, 1.0) * 2.5)))))
         step = max(1, total_frames // target_samples)
         expected_written = (total_frames + step - 1) // step
         out_fps = max(1.0, expected_written / duration_s) if duration_s > 0 else 4.0
@@ -251,6 +251,7 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
     people_detected_frames = 0
     best_score = 0.0
     best_pose_reason = "Nenhuma pessoa suspeita detectada"
+    clean_lgpd_frames: list[np.ndarray] = []
     sampled_annotated: list[np.ndarray] = []
     peak_sampled_idx = 0
 
@@ -268,9 +269,17 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
             if frame.shape[1] != width or frame.shape[0] != height:
                 frame = cv2.resize(frame, (width, height))
 
-            results = pose_model.track(frame, imgsz=448, persist=True, verbose=False)
+            results = pose_model.track(frame, imgsz=384, persist=True, verbose=False)
             frame_score = 0.0
             person_count = 0
+
+            # Primeiro aplica apenas blur LGPD e guarda cópia limpa para o Juiz VLM
+            for res in results:
+                if res.keypoints is not None and res.keypoints.xy is not None:
+                    for kpts in res.keypoints.xy:
+                        if len(kpts) >= 13:
+                            _blur_face_lgpd(frame, kpts)
+            clean_copy = cv2.resize(frame, (480, max(2, int(480 * height / width))))
 
             for res in results:
                 if res.keypoints is None or res.keypoints.xy is None:
@@ -284,7 +293,6 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
                         continue
                     person_count += 1
                     confs_i = kpt_confs[idx] if (kpt_confs is not None and idx < len(kpt_confs)) else None
-                    _blur_face_lgpd(frame, kpts)
 
                     for a, b in SKELETON_LINKS:
                         if a < len(kpts) and b < len(kpts):
@@ -323,12 +331,11 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
             )
             writer.write(frame)
 
-            # Guarda amostra enxuta em RAM para o storyboard 2x2 sem estourar memória
-            if len(sampled_annotated) < 40 or frame_score > best_score:
-                sampled_annotated.append(cv2.resize(frame, (min(width, 640), min(height, int(640 * height / width)))))
-                if frame_score >= best_score:
-                    best_score = frame_score
-                    peak_sampled_idx = len(sampled_annotated) - 1
+            clean_lgpd_frames.append(clean_copy)
+            sampled_annotated.append(cv2.resize(frame, (480, max(2, int(480 * height / width)))))
+            if frame_score > best_score:
+                best_score = frame_score
+                peak_sampled_idx = len(clean_lgpd_frames) - 1
 
             analyzed += 1
             frame_idx += 1
@@ -339,7 +346,7 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
     if analyzed == 0:
         raise ValueError("Nenhum frame legível encontrado no arquivo de vídeo.")
 
-    storyboard_b64, peak_b64 = _build_storyboard_b64(sampled_annotated, peak_sampled_idx)
+    storyboard_b64, peak_b64 = _build_storyboard_b64(clean_lgpd_frames, sampled_annotated, peak_sampled_idx)
     ev_filename = f"evidence_{out_stem}_{vid_hash_short}.jpg"
     if peak_b64:
         (RECORDINGS_DIR / ev_filename).write_bytes(base64.b64decode(peak_b64))
