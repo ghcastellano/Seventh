@@ -22,9 +22,14 @@
       --amber: #fbbf24;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background-color: #070b14;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
-      background: radial-gradient(ellipse at top right, rgba(30, 58, 138, 0.28) 0%, var(--bg) 50%);
+      background: radial-gradient(circle at 80% 0%, rgba(23, 37, 84, 0.45) 0%, #070b14 60%);
+      background-color: #070b14;
+      background-attachment: fixed;
       color: var(--text);
       line-height: 1.6;
       min-height: 100vh;
@@ -191,8 +196,8 @@
       margin: 1.5rem 0 0.75rem;
       flex-wrap: wrap;
     }
-    .sec-head h2 { font-size: 1.22rem; letter-spacing: -0.01em; }
-    .sec-head span { font-size: 0.84rem; color: var(--muted); }
+    .sec-head h2 { font-size: 1.22rem; letter-spacing: -0.01em; color: #f8fafc; }
+    .sec-head span { font-size: 0.84rem; color: #cbd5e1; }
 
     /* Visual Diagram Frame (aligned flush with container & other cards) */
     .diagram-frame {
@@ -1874,18 +1879,14 @@
         <!-- Left: Video & Controls -->
         <div class="poc-panel">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-            <strong style="font-size:0.95rem;">1. Entrada de Vídeo / Cenário</strong>
-            <div class="sim-tabs" id="poc-presets">
-              <button class="sim-tab active" data-preset="0">Ocultação Casaco</button>
-              <button class="sim-tab" data-preset="1">Celular (Falso Positivo)</button>
-              <button class="sim-tab" data-preset="2">Mochila Gôndola</button>
-            </div>
+            <strong style="font-size:0.95rem;">1. Entrada de Vídeo Real (.MP4 / .WebM)</strong>
+            <span class="pill-low">100% Real • Sem Simulação Falsa</span>
           </div>
 
           <div class="poc-stage" id="poc-stage">
             <video id="poc-video" controls muted playsinline></video>
             <div class="poc-placeholder" id="poc-placeholder">
-              Selecione um cenário acima ou envie um arquivo <strong>.MP4 / .WebM</strong> abaixo para rodar a análise de pose + VLM.
+              Envie um vídeo <strong>.MP4 / .WebM</strong> abaixo e clique em <strong>Analisar Clipe Agora</strong> para rodar o <code>YOLOv8-Pose</code> + Blur LGPD + Juiz VLM.
             </div>
             <canvas id="poc-canvas" width="640" height="360"></canvas>
           </div>
@@ -2205,38 +2206,7 @@
 
     renderSimulator();
 
-    // Demo POC (Antifurto em Mercados)
-    const pocPresets = [
-      {
-        score: 0.89,
-        verdict: "ALERTA REAL • Ocultação Confirmada pelo VLM",
-        cardClass: "situator-alert-card is-high",
-        badgeClass: "pill-high",
-        reason: "YOLOv8-Pose detectou pulso direito na região interna do casaco por 2.4s; Qwen2.5-VL confirmou ocultação de item da gôndola.",
-        action: "Ação na loja: Enviar clipe de 5s ao fiscal → Abordagem preventiva ('Posso ajudar com uma sacola?').",
-        alertTriggered: true
-      },
-      {
-        score: 0.72,
-        verdict: "DESCARTADO PELO VLM • Falso Positivo Evitado",
-        cardClass: "situator-alert-card is-filtered",
-        badgeClass: "pill-low",
-        reason: "Pose sinalizou mão próxima ao bolso (0.72), mas o Juiz VLM identificou que o cliente apenas guardou o próprio smartphone.",
-        action: "Economia operacional: Ocorrência NÃO enviada para a fila do Situator.",
-        alertTriggered: false
-      },
-      {
-        score: 0.84,
-        verdict: "ALERTA REAL • Item Colocado em Mochila Aberta",
-        cardClass: "situator-alert-card is-high",
-        badgeClass: "pill-high",
-        reason: "Rastreio temporal (ST-GCN) + VLM identificaram transferência direta de garrafa da prateleira para mochila lateral.",
-        action: "Ação na loja: Notificar gerente e marcar câmera ao vivo na Matriz Virtual do Situator.",
-        alertTriggered: true
-      }
-    ];
-
-    let activePreset = 0;
+    // Demo POC (100% Real — sem texto ou esqueleto inventado)
     let uploadedFile = null;
 
     function clearCanvasOverlay() {
@@ -2250,13 +2220,13 @@
       document.getElementById('poc-verdict').textContent = res.verdict;
       const badge = document.getElementById('poc-score-badge');
       badge.className = res.badgeClass;
-      badge.textContent = 'Score: ' + Math.round(res.score * 100) + '%';
+      badge.textContent = res.score !== null ? ('Score: ' + Math.round(res.score * 100) + '%') : 'Erro';
       document.getElementById('poc-reason').textContent = res.reason;
       document.getElementById('poc-action').textContent = res.action;
       document.getElementById('poc-json').textContent = JSON.stringify(res.payload, null, 2);
 
       clearCanvasOverlay();
-      if (res.isRealBackend && res.recordingUrl) {
+      if (res.recordingUrl) {
         const video = document.getElementById('poc-video');
         video.src = res.recordingUrl + '?t=' + Date.now();
         video.style.display = 'block';
@@ -2265,13 +2235,6 @@
         video.play().catch(() => {});
       }
     }
-
-    document.getElementById('poc-presets').addEventListener('click', (e) => {
-      const btn = e.target.closest('.sim-tab');
-      if (!btn) return;
-      activePreset = Number(btn.dataset.preset);
-      document.querySelectorAll('#poc-presets .sim-tab').forEach((b, i) => b.classList.toggle('active', i === activePreset));
-    });
 
     document.getElementById('poc-file').addEventListener('change', (e) => {
       const f = e.target.files[0];
@@ -2282,7 +2245,8 @@
       video.style.display = 'block';
       document.getElementById('poc-placeholder').style.display = 'none';
       video.play().catch(() => {});
-      document.getElementById('poc-status').textContent = 'Vídeo carregado: ' + f.name;
+      document.getElementById('poc-status').textContent = 'Vídeo carregado: ' + f.name + '. Iniciando rastreamento automático...';
+      document.getElementById('poc-run').click();
     });
 
     document.getElementById('poc-run').addEventListener('click', async () => {
@@ -2291,57 +2255,67 @@
       const zone = document.getElementById('poc-zone').value.trim() || 'Corredor 03 - Bebidas';
       const statusEl = document.getElementById('poc-status');
 
-      if (apiUrl && uploadedFile) {
-        statusEl.textContent = 'Enviando vídeo para GPU...';
-        try {
-          const fd = new FormData();
-          fd.append('file', uploadedFile);
-          fd.append('account', account);
-          fd.append('zone', zone);
-          const resp = await fetch(apiUrl, { method: 'POST', body: fd });
-          const data = await resp.json();
-          const score = data.pose_analysis?.pose_score ?? 0.75;
-          const isAlert = score >= 0.65;
-          const baseApi = apiUrl.replace(/\/analyze\/?$/, '');
-          const recFile = data.pose_analysis?.recording_filename;
-          renderPocResult({
-            isRealBackend: true,
-            recordingUrl: recFile ? (baseApi + '/recordings/' + recFile) : null,
-            score,
-            verdict: isAlert ? 'ALERTA REAL (Backend GPU)' : 'BAIXO RISCO (Backend GPU)',
-            cardClass: isAlert ? 'situator-alert-card is-high' : 'situator-alert-card is-filtered',
-            badgeClass: isAlert ? 'pill-high' : 'pill-low',
-            reason: data.vlm_judge?.reason || 'Análise concluída pelo backend.',
-            action: data.situator_webhook_sent ? 'Webhook disparado para o Situator!' : 'Payload pronto (descartado ou sem webhook configurado).',
-            alertTriggered: isAlert,
-            payload: data.situator_payload || data
-          });
-          statusEl.textContent = 'Concluído em ' + (data.elapsed_ms || 0) + ' ms.';
-          return;
-        } catch (err) {
-          statusEl.textContent = 'Falha no backend (' + err.message + '). Usando simulação local.';
-        }
+      if (!uploadedFile) {
+        statusEl.textContent = 'Escolha um arquivo .MP4/.WebM primeiro.';
+        return;
+      }
+      if (!apiUrl) {
+        statusEl.textContent = 'Informe a URL do backend (ex: http://127.0.0.1:8000/analyze).';
+        return;
       }
 
-      const p = pocPresets[activePreset];
-      statusEl.textContent = 'Simulação concluída (modo local).';
-      renderPocResult({
-        ...p,
-        payload: {
-          token: "demo-token-situator",
-          eventCode: p.alertTriggered ? "AI_SHOPLIFTING_SUSPECT" : "AI_FALSE_POSITIVE_FILTERED",
-          priority: p.alertTriggered ? "ALTA" : "IGNORADO",
-          account,
-          zone,
-          confidence: p.score,
-          description: p.reason,
-          recommendedAction: p.alertTriggered ? "Abordagem preventiva ('Posso ajudar?')" : "Nenhuma ação necessária",
-          timestamp: new Date().toISOString()
+      statusEl.textContent = 'Processando vídeo real (YOLOv8-Pose + Blur LGPD + VLM)...';
+      try {
+        const fd = new FormData();
+        fd.append('file', uploadedFile);
+        fd.append('account', account);
+        fd.append('zone', zone);
+        const resp = await fetch(apiUrl, { method: 'POST', body: fd });
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.detail || ('HTTP ' + resp.status));
         }
-      });
+
+        const score = data.pose_analysis?.pose_score ?? 0.0;
+        const isAlert = Boolean(data.vlm_judge?.confirmed_theft);
+        const baseApi = apiUrl.replace(/\/analyze\/?$/, '');
+        const recFile = data.pose_analysis?.recording_filename;
+
+        renderPocResult({
+          recordingUrl: recFile ? (baseApi + '/recordings/' + recFile) : null,
+          score,
+          verdict: isAlert
+            ? 'ALERTA REAL CONFIRMADO (Pose + VLM)'
+            : (data.vlm_judge?.verdict === 'DESCARTADO_PELO_VLM'
+                ? 'DESCARTADO PELO VLM (Falso Positivo Evitado)'
+                : 'BAIXO RISCO (' + (data.vlm_judge?.verdict || 'POSE') + ')'),
+          cardClass: isAlert ? 'situator-alert-card is-high' : 'situator-alert-card is-filtered',
+          badgeClass: isAlert ? 'pill-high' : 'pill-low',
+          reason: (data.cached ? '[CACHE SHA-256] ' : '') + (data.vlm_judge?.reason || 'Análise concluída.'),
+          action: data.situator_webhook_sent
+            ? 'Webhook REAL disparado para o Situator (8090)!'
+            : 'Nenhuma ocorrência enviada ao Situator.',
+          payload: data.situator_payload || data
+        });
+        statusEl.textContent = 'Concluído em ' + (data.elapsed_ms || 0) + ' ms' + (data.cached ? ' (via cache).' : '.');
+        pollSituatorFeed();
+      } catch (err) {
+        const hint = location.protocol === 'https:' && apiUrl.startsWith('http://')
+          ? ' Abra pelo endereço local http://127.0.0.1:5500/ para conectar ao backend HTTP local sem bloqueio HTTPS do navegador.'
+          : '';
+        statusEl.textContent = 'Falha ao conectar no backend: ' + err.message;
+        renderPocResult({
+          score: null,
+          verdict: 'ERRO DE CONEXÃO COM BACKEND',
+          cardClass: 'situator-alert-card is-high',
+          badgeClass: 'pill-high',
+          reason: err.message + '.' + hint,
+          action: 'Verifique se o backend (porta 8000) está rodando e acessível.',
+          payload: { error: err.message, apiUrl }
+        });
+      }
     });
 
-    // Mantém painel limpo aguardando upload de vídeo real (sem auto-simulação enganosa)
     clearCanvasOverlay();
 
     // Polling em tempo real da Fila do Situator (Mock 8090)
