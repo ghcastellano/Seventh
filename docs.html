@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Axioma Vision — Guia POC vs. Produção, Equipamentos e Dicionário</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --surface: #0f172a;
+      --surface-2: #162033;
+      --surface-3: #1e293b;
+      --border: #24324a;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.12);
+      --indigo: #818cf8;
+      --emerald: #34d399;
+      --emerald-soft: rgba(52, 211, 153, 0.12);
+      --amber: #fbbf24;
+      --amber-soft: rgba(251, 191, 36, 0.14);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: radial-gradient(ellipse at top right, rgba(30, 58, 138, 0.28) 0%, var(--bg) 50%);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(7, 11, 20, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0.72rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; color: inherit; }
+    .brand-mark {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: linear-gradient(145deg, #0f172a, #1e293b);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      display: grid; place-items: center;
+    }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+    .brand-name { font-weight: 700; font-size: 0.96rem; letter-spacing: 0.02em; }
+    .brand-sub { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+    .nav-links {
+      display: flex;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .nav-link {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 0.42rem 0.78rem;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: all 0.18s ease;
+    }
+    .nav-link:hover { color: var(--text); border-color: var(--accent); }
+    .nav-link.primary {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
+    .container { max-width: 1080px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+    .hero {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.65));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.35rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 0.22rem 0.65rem;
+      border-radius: 999px;
+      margin-bottom: 0.75rem;
+    }
+    h1 { font-size: clamp(1.5rem, 3vw, 2.15rem); line-height: 1.2; margin-bottom: 0.55rem; }
+    .lead { color: var(--muted); font-size: 0.96rem; max-width: 780px; }
+
+    .sec-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin: 2rem 0 0.85rem;
+      flex-wrap: wrap;
+    }
+    .sec-head h2 { font-size: 1.22rem; }
+    .sec-head span { font-size: 0.84rem; color: var(--muted); }
+
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow-x: auto;
+      margin-bottom: 1.25rem;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 680px; }
+    th, td {
+      padding: 0.8rem 0.95rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      background: var(--surface-2);
+      color: var(--accent);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:last-child td { border-bottom: none; }
+    td { color: #cbd5e1; }
+    td strong { color: var(--text); }
+    .badge-poc {
+      display: inline-block; font-size: 0.74rem; font-weight: 600;
+      padding: 0.16rem 0.5rem; border-radius: 5px;
+      background: var(--emerald-soft); color: var(--emerald);
+    }
+    .badge-prod {
+      display: inline-block; font-size: 0.74rem; font-weight: 600;
+      padding: 0.16rem 0.5rem; border-radius: 5px;
+      background: var(--amber-soft); color: var(--amber);
+    }
+
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+    .card h3 { font-size: 1rem; color: var(--text); }
+    .card .sub { font-size: 0.78rem; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .card p { font-size: 0.86rem; color: #cbd5e1; }
+    .card .cfg {
+      margin-top: auto;
+      padding-top: 0.6rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .card .cfg strong { color: var(--emerald); }
+
+    .search-bar {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 0.9rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .search-bar:focus { outline: none; border-color: var(--accent); }
+
+    .glossary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+      gap: 0.85rem;
+    }
+    .term-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .term-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+    .term-title { font-weight: 700; font-size: 0.95rem; color: var(--accent); }
+    .term-cat { font-size: 0.7rem; color: var(--muted); background: var(--surface-2); padding: 0.15rem 0.45rem; border-radius: 4px; }
+    .term-full { font-size: 0.76rem; color: var(--indigo); font-weight: 500; }
+    .term-desc { font-size: 0.84rem; color: #cbd5e1; }
+
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="./index.html" class="brand">
+        <div class="brand-mark">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3L20.5 18.5H3.5L12 3Z" stroke="#38bdf8" stroke-width="1.75" stroke-linejoin="round"/>
+            <path d="M12 8.5L16 15.8H8L12 8.5Z" fill="rgba(56,189,248,0.18)" stroke="#818cf8" stroke-width="1.4" stroke-linejoin="round"/>
+            <circle cx="12" cy="13.5" r="1.4" fill="#34d399"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">AXIOMA <span style="color:var(--accent); font-weight:500;">Vision</span></span>
+          <span class="brand-sub">Docs &amp; Glossário Técnico</span>
+        </div>
+      </a>
+      <div class="nav-links">
+        <a href="#tutorial" class="nav-link">POC vs. Produção</a>
+        <a href="#equipamentos" class="nav-link">Equipamentos</a>
+        <a href="#dicionario" class="nav-link">Dicionário</a>
+        <a href="./index.html" class="nav-link primary">← Voltar ao Painel Principal</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <header class="hero">
+      <span class="eyebrow">Documentação Simplificada • Sem Jargão Complicado</span>
+      <h1>Guia Prático: POC vs. Produção, Equipamentos e Dicionário</h1>
+      <p class="lead">
+        Página de consulta rápida para você configurar o <strong>D-Guard</strong> e o <strong>Situator</strong> sem travar nas telas técnicas, entender o papel de cada equipamento físico e traduzir todas as siglas do mercado de segurança e IA.
+      </p>
+    </header>
+
+    <!-- 1. POC vs PRODUCTION TUTORIAL -->
+    <div class="sec-head" id="tutorial">
+      <h2>1. Tutorial Resumido: O que escolher na POC vs. Produção</h2>
+      <span>Por que cada opção existe e qual marcar em cada momento</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Configuração / Pergunta</th>
+            <th>Na POC / Treinamento (Agora)</th>
+            <th>Em Produção (Loja / Central)</th>
+            <th>Por que essa escolha? (Explicação simples)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Edição: Projects vs. Center</strong></td>
+            <td><span class="badge-poc">D-Guard Projects</span></td>
+            <td><span class="badge-prod">Projects (1 loja) / Center (Central)</span></td>
+            <td>O <em>Projects</em> tem versão gratuita (<em>Standard</em>) e modo demonstração no seu PC. O <em>Center</em> é só para centrais de monitoramento que pagam mensalidade por CNPJ à Seventh.</td>
+          </tr>
+          <tr>
+            <td><strong>Papel: Servidor vs. Estação</strong></td>
+            <td><span class="badge-poc">Servidor</span></td>
+            <td><span class="badge-prod">Servidor (1 principal) + Estações</span></td>
+            <td>Só o <em>Servidor</em> grava imagens, recebe câmeras e abre as portas de API/RTSP para a sua IA. <em>Estação de trabalho</em> é só uma tela para o operador assistir.</td>
+          </tr>
+          <tr>
+            <td><strong>Arquitetura: 64 bits vs. 32 bits</strong></td>
+            <td><span class="badge-poc">64 bits</span></td>
+            <td><span class="badge-prod">64 bits</span></td>
+            <td>O manual avisa que a versão 32 bits não suporta leitura de placas (LPR) e limita o uso de memória RAM do computador.</td>
+          </tr>
+          <tr>
+            <td><strong>Segurança Web: HTTP vs. HTTPS (SSL)</strong></td>
+            <td><span class="badge-poc">HTTP (sem SSL)</span></td>
+            <td><span class="badge-prod">HTTPS (porta 443) ou VPN</span></td>
+            <td>HTTPS exige certificado digital (SSL) e trava testes locais por erro de certificado. Use HTTP na rede interna da POC e ative HTTPS/VPN só quando expor para a internet.</td>
+          </tr>
+          <tr>
+            <td><strong>Porta Administração Web (API REST)</strong></td>
+            <td><span class="badge-poc">8081 (padrão)</span></td>
+            <td><span class="badge-prod">8081 (ou customizada no firewall)</span></td>
+            <td>É o "endereço" pelo qual você abre o painel Web do D-Guard no navegador (<code>http://localhost:8081</code>, login <code>admin</code> / <code>seventh</code>) e por onde o Situator conversa com ele.</td>
+          </tr>
+          <tr>
+            <td><strong>Servidor RTSP (Streaming de Vídeo)</strong></td>
+            <td><span class="badge-poc">Habilitado (porta 554)</span></td>
+            <td><span class="badge-prod">Habilitado (porta 554)</span></td>
+            <td>É a "torneira de vídeo" do D-Guard. É por essa porta que a nossa IA (YOLOv8-Pose) puxa o vídeo ao vivo das câmeras sem precisar trocar nenhum equipamento.</td>
+          </tr>
+          <tr>
+            <td><strong>Discos de Gravação (HDs)</strong></td>
+            <td><span class="badge-poc">Desativar C: (se não gravar)</span></td>
+            <td><span class="badge-prod">Disco D:/E: exclusivo (Surveillance)</span></td>
+            <td>Nunca grave vídeo no Disco C: (onde fica o Windows), senão o computador trava quando o disco encher. Em produção, use HD próprio para CFTV e configure um Disco de Emergência.</td>
+          </tr>
+          <tr>
+            <td><strong>Conexão Externa: Portas vs. Transmissão Inversa</strong></td>
+            <td><span class="badge-poc">Localhost (127.0.0.1)</span></td>
+            <td><span class="badge-prod">Transmissão Inversa / Redirecionador</span></td>
+            <td>Se o roteador do mercado bloqueia abertura de portas, a <em>Transmissão Inversa</em> faz o D-Guard da loja chamar a central por fora. O <em>Redirecionador</em> funciona como um apelido fixo (DDNS) se o IP mudar.</td>
+          </tr>
+          <tr>
+            <td><strong>Licenciamento inicial</strong></td>
+            <td><span class="badge-poc">Standard + Ativar Demonstração</span></td>
+            <td><span class="badge-prod">Tickets vinculados ao PC/CNPJ</span></td>
+            <td>A licença fica amarrada ao código do HD e da placa-mãe da máquina. Na POC, clique em <em>Home &gt; Licenças &gt; Ativar demonstração</em> para liberar os testes.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 2. EQUIPMENT & CONFIGS -->
+    <div class="sec-head" id="equipamentos">
+      <h2>2. Equipamentos e Suas Configurações (Sem Mistério)</h2>
+      <span>O que cada aparelho físico faz na loja/condomínio e o que você ajusta nele</span>
+    </div>
+    <div class="grid-cards">
+      <article class="card">
+        <span class="sub">Captura de Vídeo</span>
+        <h3>Câmera IP</h3>
+        <p>É uma câmera que já tem um "mini-computador" dentro dela e se liga direto no cabo de rede (ou Wi-Fi), recebendo um endereço IP próprio.</p>
+        <div class="cfg"><strong>O que configurar:</strong> <em>Stream 1</em> (alta resolução para gravação) e <em>Stream 2</em> (resolução menor, ex.: 720p a 10–15 FPS, ideal para a IA analisar leve sem travar a rede).</div>
+      </article>
+
+      <article class="card">
+        <span class="sub">Gravadores Locais</span>
+        <h3>DVR / HVR / NVR</h3>
+        <p>São as "caixas gravadoras". O <strong>DVR</strong> recebe câmeras analógicas (cabo coaxial), o <strong>NVR</strong> recebe câmeras IP (cabo de rede) e o <strong>HVR</strong> aceita os dois tipos.</p>
+        <div class="cfg"><strong>O que configurar:</strong> IP, porta de comunicação, usuário/senha e ativar a opção <em>Otimizar banda</em> no D-Guard para não baixar vídeo quando ninguém estiver olhando.</div>
+      </article>
+
+      <article class="card">
+        <span class="sub">Automação Física</span>
+        <h3>Módulo de I/O (Sensores &amp; Relés)</h3>
+        <p>É a placa que conecta o software ao mundo físico. <strong>Input (Entrada)</strong> lê sensores (botão de pânico, porta aberta); <strong>Output (Relé/Saída)</strong> liga ou desliga algo (abre portão, acende luz, toca sirene).</p>
+        <div class="cfg"><strong>O que configurar:</strong> Associar o sensor/relé à câmera no módulo <em>Intelligence</em> e definir tempo de reversão (ex.: abrir portão e fechar relé após 3 segundos).</div>
+      </article>
+
+      <article class="card">
+        <span class="sub">Portas e Portaria</span>
+        <h3>Controladoras de Acesso</h3>
+        <p>Aparelhos (ZKTeco, Intelbras, Control iD, Linear HCS) que leem digital, rosto, tag de carro, cartão ou QR Code e destravam a fechadura eletromagnética.</p>
+        <div class="cfg"><strong>O que configurar:</strong> Formato <em>Wiegand</em> (padrão do leitor de cartão), <em>Tempo de abertura</em>, <em>Timeout de porta aberta</em> e sincronização com o Situator para funcionar até offline.</div>
+      </article>
+
+      <article class="card">
+        <span class="sub">Comunicação &amp; Alarme</span>
+        <h3>PABX-IP (VoIP) &amp; Central de Alarme</h3>
+        <p>O <strong>PABX-IP (uTech / SNEP)</strong> transforma o interfone em ligação pela internet. A <strong>Central de Alarme (ViaWeb)</strong> monitora sensores de invasão/incêndio via códigos <em>Contact ID</em>.</p>
+        <div class="cfg"><strong>O que configurar:</strong> Porta socket CTI (padrão <code>3000</code> na uTech) para a ocorrência abrir sozinha quando o operador atender o ramal.</div>
+      </article>
+
+      <article class="card">
+        <span class="sub">Processamento da IA</span>
+        <h3>Edge Box (Mini-PC com GPU)</h3>
+        <p>Um computador compacto colocado dentro do mercado (ao lado do DVR/D-Guard) para rodar o <strong>YOLOv8-Pose</strong> localmente sem depender de internet rápida para subir vídeo 24h.</p>
+        <div class="cfg"><strong>O que configurar:</strong> Puxa o RTSP <code>554</code> pela rede interna e só envia para a nuvem/Situator clipes curtos de 5s quando detectar suspeita.</div>
+      </article>
+    </div>
+
+    <!-- 3. DICTIONARY OF ACRONYMS -->
+    <div class="sec-head" id="dicionario">
+      <h2>3. Dicionário de Siglas e Termos Técnicos</h2>
+      <span>Digite qualquer termo para filtrar na hora</span>
+    </div>
+    <input type="text" id="dict-search" class="search-bar" placeholder="Buscar sigla ou termo (ex: RTSP, Webhook, LPR, Wiegand, VLM, OPEX)..." />
+    <div class="glossary-grid" id="glossary-grid"></div>
+
+    <footer>
+      Grupo Axioma (Juliano &amp; Gustavo) — Documentação de Apoio • Axioma Vision
+    </footer>
+  </main>
+
+  <script>
+    const terms = [
+      { t: "VMS", full: "Video Management System", cat: "Vídeo", desc: "Software que gerencia câmeras e gravações (ex.: D-Guard). É o 'olho e a memória' do sistema." },
+      { t: "PSIM", full: "Physical Security Information Management", cat: "Operação", desc: "Software que junta vídeo, portas, alarmes e telefonia em filas de atendimento para operadores (ex.: Situator)." },
+      { t: "CFTV", full: "Circuito Fechado de TV", cat: "Vídeo", desc: "Nome tradicional para o conjunto de câmeras e gravadores de segurança de um local." },
+      { t: "RTSP (554)", full: "Real-Time Streaming Protocol", cat: "Rede/IA", desc: "Protocolo que entrega vídeo ao vivo pela rede. O D-Guard pode servir RTSP na porta 554 para nossa IA assistir às câmeras." },
+      { t: "Stream / Sub-stream", full: "Fluxo de Vídeo", cat: "Vídeo", desc: "A câmera gera 2+ vídeos ao mesmo tempo: Stream 1 (alta qualidade para gravar) e Stream 2 (mais leve para ver em mosaico ou rodar IA)." },
+      { t: "FPS", full: "Frames Per Second (Quadros por segundo)", cat: "Vídeo", desc: "Quantas 'fotos' por segundo formam o vídeo. 10 a 15 FPS já é suficiente para IA de segurança e economiza processamento." },
+      { t: "Bitrate", full: "Taxa de Bits (kbps / Mbps)", cat: "Rede", desc: "Quanto de internet/rede o vídeo consome por segundo. Quanto maior a resolução e o FPS, maior o bitrate." },
+      { t: "HTTP / HTTPS (SSL)", full: "Hypertext Transfer Protocol (Secure)", cat: "Rede", desc: "Protocolo da Web. HTTPS usa cadeado de segurança (SSL na porta 443) — ótimo para internet, desnecessário na POC local." },
+      { t: "API REST (8081)", full: "Application Programming Interface", cat: "Integração", desc: "Porta de entrada programável (padrão 8081 no D-Guard) para outros softwares consultarem câmeras ou mandarem comandos." },
+      { t: "Webhook / HTTP GET", full: "Gatilho Automático via Web", cat: "Integração", desc: "Um aviso automático enviado de um sistema para outro pela rede quando algo acontece (ex.: IA detecta furto → envia JSON ao Situator)." },
+      { t: "JSON", full: "JavaScript Object Notation", cat: "Integração", desc: "Formato de texto organizado em chave/valor que os sistemas usam para trocar mensagens (ex.: {\"evento\": \"furto\", \"corredor\": 3})." },
+      { t: "FTP", full: "File Transfer Protocol", cat: "Integração", desc: "Protocolo antigo e simples para enviar arquivos. O D-Guard pode salvar fotos (snapshots) em uma pasta FTP a cada X segundos." },
+      { t: "LPR / ANPR", full: "License Plate Recognition", cat: "Analítico", desc: "Leitura automática de placas de carros pela câmera (no D-Guard usa a licença DGPLPR)." },
+      { t: "PTZ / Preset / Patrulha", full: "Pan-Tilt-Zoom", cat: "Vídeo", desc: "Câmera móvel que gira e dá zoom. Preset é uma posição salva (ex.: 'Portão'); Patrulha é fazer a câmera passear entre vários presets." },
+      { t: "I/O (Input / Output)", full: "Entrada e Saída Física", cat: "Automação", desc: "Input = sensor que avisa o sistema (porta aberta). Output/Relé = interruptor controlado pelo sistema (abrir portão)." },
+      { t: "Wiegand (26 / 34)", full: "Protocolo de Controle de Acesso", cat: "Acesso", desc: "Padrão de fios/sinal usado por leitores de cartão e tags para enviar o código da credencial para a controladora." },
+      { t: "Contact ID", full: "Protocolo de Alarme", cat: "Alarme", desc: "Linguagem padrão de códigos usada por centrais de alarme para avisar o software qual setor disparou (ex.: roubo, pânico, incêndio)." },
+      { t: "VoIP / SIP / CTI", full: "Voice over IP / Computer Telephony Integration", cat: "Telefonia", desc: "Ligações telefônicas e interfones via internet. O CTI (porta 3000 na uTech) conecta o telefone ao Situator para abrir a ficha do cliente ao atender." },
+      { t: "Transmissão Inversa", full: "Conexão Reversa D-Guard", cat: "Rede", desc: "Recurso do D-Guard onde a loja 'chama' a central por fora, permitindo ver câmeras mesmo quando o roteador da loja bloqueia conexões de entrada." },
+      { t: "Redirecionador / DDNS", full: "Dynamic DNS Seventh", cat: "Rede", desc: "Cria um nome fixo (ex.: mercado01.ddns) para você achar o D-Guard mesmo quando a operadora de internet muda o IP." },
+      { t: "YOLO-Pose & Keypoints", full: "You Only Look Once (Esqueleto)", cat: "IA", desc: "IA ultrarrápida que desenha 17 pontos do corpo humano (ombros, cotovelos, pulsos, quadris) sem precisar identificar o rosto (pró-LGPD)." },
+      { t: "VLM", full: "Vision-Language Model", cat: "IA", desc: "IA multimodal (como o Qwen2.5-VL) que 'olha' um clipe de vídeo e responde perguntas em texto para confirmar se o gesto foi mesmo um furto." },
+      { t: "Edge vs. Cloud", full: "Borda (Local) vs. Nuvem", cat: "Arquitetura", desc: "Edge roda no Mini-PC dentro da loja (rápido e sem gastar upload). Cloud roda em servidores na internet (ideal só para confirmar clipes suspeitos)." },
+      { t: "POC vs. MVP", full: "Prova de Conceito vs. Produto Mínimo Viável", cat: "Negócio", desc: "POC é o teste rápido desta semana para provar que funciona. MVP é a 1ª versão vendável para instalar na loja-piloto." },
+      { t: "CAPEX vs. OPEX", full: "Investimento Inicial vs. Custo Mensal", cat: "Negócio", desc: "CAPEX é o gasto único inicial (ex.: Mini-PC na loja). OPEX é o custo recorrente todo mês (nuvem, API, suporte)." },
+      { t: "MRR / Churn / SLA", full: "Métricas de SaaS", cat: "Negócio", desc: "MRR = receita mensal recorrente. Churn = taxa de clientes que cancelam. SLA = meta combinada de qualidade/tempo de resposta." }
+    ];
+
+    const grid = document.getElementById('glossary-grid');
+    function renderTerms(filter = '') {
+      const q = filter.trim().toLowerCase();
+      const filtered = terms.filter(x =>
+        x.t.toLowerCase().includes(q) ||
+        x.full.toLowerCase().includes(q) ||
+        x.cat.toLowerCase().includes(q) ||
+        x.desc.toLowerCase().includes(q)
+      );
+      grid.innerHTML = filtered.map(x => `
+        <article class="term-card">
+          <div class="term-top">
+            <span class="term-title">${x.t}</span>
+            <span class="term-cat">${x.cat}</span>
+          </div>
+          <div class="term-full">${x.full}</div>
+          <p class="term-desc">${x.desc}</p>
+        </article>
+      `).join('');
+    }
+    document.getElementById('dict-search').addEventListener('input', (e) => renderTerms(e.target.value));
+    renderTerms();
+  </script>
+</body>
+</html>
