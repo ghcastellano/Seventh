@@ -1,11 +1,19 @@
 """
-Simulador local do receptor de Webhooks do Situator (porta 8090).
-Use para validar o fluxo ponta a ponta quando ainda não houver um servidor Situator configurado.
+Simulador local do receptor de Webhooks do Situator (porta 8090) com CORS habilitado
+para visualização em tempo real no painel Demo POC.
 """
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Mock Situator Webhook Receiver")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 received_events: list[dict] = []
 
 
