@@ -346,6 +346,9 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
     peak_sampled_idx = 0
     track_traces: dict[int, list[tuple[int, int]]] = {}
     track_last_seen: dict[int, int] = {}
+    # Regras temporais inspiradas em TheftGuard (detection_rules.py): permanência (dwell) e histerese (inertia_frames)
+    track_dwell_frames: dict[int, int] = {}
+    track_susp_streak: dict[int, int] = {}
 
     try:
         while cap.isOpened():
@@ -397,10 +400,27 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
                     person_count += 1
                     confs_i = kpt_confs[idx] if (kpt_confs is not None and idx < len(kpt_confs)) else None
                     p_score, p_reason = _score_person_pose(kpts, confs_i)
+                    tid = int(track_ids[idx]) if (track_ids is not None and idx < len(track_ids)) else (idx + 1)
+
+                    # Atualiza permanência (loitering/dwell) e histerese temporal (inertia_frames) por track_id
+                    dwell_n = track_dwell_frames.get(tid, 0) + 1
+                    track_dwell_frames[tid] = dwell_n
+                    dwell_s = dwell_n / max(1.0, out_fps)
+                    if p_score >= 0.60:
+                        streak = track_susp_streak.get(tid, 0) + 1
+                    else:
+                        streak = max(0, track_susp_streak.get(tid, 0) - 1)
+                    track_susp_streak[tid] = streak
+
+                    # Bônus de histerese (>= 2 quadros consecutivos em pose de ocultação + permanência na gôndola >= 4s)
+                    if streak >= 2 and p_score >= 0.60:
+                        dwell_bonus = 0.04 if dwell_s >= 4.0 else 0.02
+                        p_score = round(min(0.96, p_score + dwell_bonus), 2)
+                        p_reason = f"{p_reason} [persistência {streak}f / {dwell_s:.1f}s na zona]"
+
                     frame_score = max(frame_score, p_score)
                     if p_score >= best_score:
                         best_pose_reason = p_reason
-                    tid = int(track_ids[idx]) if (track_ids is not None and idx < len(track_ids)) else (idx + 1)
                     detections_list.append({
                         "tid": tid,
                         "kpts": kpts,
@@ -414,6 +434,8 @@ def _extract_pose_suspicion(video_path: str, out_stem: str, vid_hash_short: str)
             for old_tid in [t_k for t_k, last_a in track_last_seen.items() if analyzed - last_a > 10]:
                 track_traces.pop(old_tid, None)
                 track_last_seen.pop(old_tid, None)
+                track_dwell_frames.pop(old_tid, None)
+                track_susp_streak.pop(old_tid, None)
 
             # Ordena: suspeitos primeiro, depois maior proximidade/área (Declutter em multidões)
             detections_list.sort(key=lambda d: (1 if d["is_susp"] else 0, d["score"], d["area"]), reverse=True)
